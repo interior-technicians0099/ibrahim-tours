@@ -37,6 +37,8 @@ export const TOUR_CATEGORIES: TourCategory[] = [
   'Full Day Combos',
 ];
 
+// Homepage marketing cards. Each `slug` MUST resolve to an entry in ALL_TOURS below,
+// otherwise the "Book Now" CTA and the footer tour links 404.
 export const FEATURED_PACKAGES: FeaturedTour[] = [
   {
     id: 'feat-1',
@@ -55,7 +57,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     category: 'City & Cultural',
     tagline: 'Historic walk & giant tortoises',
     duration: 'Full Day',
-    slug: 'stone-town-prison-island',
+    slug: 'town-full-day-combo',
     image: '/images/stone-town.webp',
   },
   {
@@ -65,7 +67,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     category: 'City & Cultural',
     tagline: 'Spice farm + local cooking',
     duration: 'Full Day',
-    slug: 'spice-farm-cooking-class',
+    slug: 'village-tour-cooking-class',
     image: '/images/spice-tour.webp',
   },
   {
@@ -85,7 +87,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     category: 'Nature & Wildlife',
     tagline: 'Red colobus monkeys & beach',
     duration: 'Full Day',
-    slug: 'jozani-forest-mtende-beach',
+    slug: 'jozani-forest',
     image: '/images/jozani-forest.webp',
   },
   {
@@ -95,7 +97,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     category: 'Sea & Water',
     tagline: 'White sandbank + tortoises',
     duration: 'Full Day',
-    slug: 'nakupenda-sandbank-prison-island',
+    slug: 'nakupenda-sandbank',
     image: '/images/nakupenda.webp',
   },
   {
@@ -105,7 +107,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     category: 'Island Experiences',
     tagline: 'Iconic ocean dining & beach',
     duration: 'Half Day',
-    slug: 'the-rock-restaurant-michamvi-beach',
+    slug: 'the-rock-restaurant',
     image: '/images/the-rock.webp',
   },
   {
@@ -115,7 +117,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     category: 'Beach & Island',
     tagline: 'Nungwi & Kendwa beaches',
     duration: 'Full Day',
-    slug: 'zanzibar-northern-beach',
+    slug: 'north-full-day-combo',
     image: '/images/nungwi-kendwa.webp',
   },
 ];

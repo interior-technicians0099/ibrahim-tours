@@ -141,7 +141,7 @@ export default function FeaturedTours() {
                 {/* TWO CTAs: [Book Now] + [WhatsApp] */}
                 <div className="grid grid-cols-2 gap-2">
                   <Link
-                    href={`/book?tour=${encodeURIComponent(tour.title)}`}
+                    href={`/book?type=tour&tour=${encodeURIComponent(tour.slug)}`}
                     className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white font-semibold text-xs shadow-sm shadow-sky-600/20 transition-colors text-center"
                   >
                     <CalendarCheck className="w-3.5 h-3.5" />
