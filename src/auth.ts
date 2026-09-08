@@ -8,7 +8,7 @@ import { checkRateLimit, recordFailedAttempt, resetRateLimit } from "@/lib/rate-
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "ibrahim-tours-zanzibar-secret-jwt-key-2026",
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "ibrahim-tours-secret-key-32-chars-minimum-replace-in-prod",
   providers: [
     Credentials({
       name: "Credentials",
