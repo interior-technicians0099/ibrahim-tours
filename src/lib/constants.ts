@@ -48,7 +48,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Snorkeling & swim with dolphins',
     duration: 'Full Day',
     slug: 'mnemba-island',
-    image: '/images/mnemba-island.webp',
+    image: '/images/tours/Mnemba/Mnemba-Island-4.jpg.jpeg',
   },
   {
     id: 'feat-2',
@@ -58,7 +58,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Historic walk & giant tortoises',
     duration: 'Full Day',
     slug: 'town-full-day-combo',
-    image: '/images/stone-town.webp',
+    image: '/images/tours/Stonetown/ZOM_0097.JPG-300kb.jpg',
   },
   {
     id: 'feat-3',
@@ -68,7 +68,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Spice farm + local cooking',
     duration: 'Full Day',
     slug: 'village-tour-cooking-class',
-    image: '/images/spice-tour.webp',
+    image: '/images/tours/Village/Look-like-locals.jpg.jpeg',
   },
   {
     id: 'feat-4',
@@ -78,7 +78,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Full-day sea adventure + seafood lunch',
     duration: 'Full Day',
     slug: 'safari-blue',
-    image: '/images/safari-blue.webp',
+    image: '/images/tours/Safariblue/the-original-safari-blue.jpg.jpeg',
   },
   {
     id: 'feat-5',
@@ -88,7 +88,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Red colobus monkeys & beach',
     duration: 'Full Day',
     slug: 'jozani-forest',
-    image: '/images/jozani-forest.webp',
+    image: '/images/tours/Jozani/6803148a-2b22-4f22-be2f-0825a2159110.jpg.jpeg',
   },
   {
     id: 'feat-6',
@@ -98,7 +98,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'White sandbank + tortoises',
     duration: 'Full Day',
     slug: 'nakupenda-sandbank',
-    image: '/images/nakupenda.webp',
+    image: '/images/tours/Nakupenda/Nakupenda-Island-Zan-The-Level-2.jpg.jpeg',
   },
   {
     id: 'feat-7',
@@ -108,7 +108,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Iconic ocean dining & beach',
     duration: 'Half Day',
     slug: 'the-rock-restaurant',
-    image: '/images/the-rock.webp',
+    image: '/images/tours/Rock_Restaurant/The-rock-zanzibar-aerial-view.webp',
   },
   {
     id: 'feat-8',
@@ -118,7 +118,7 @@ export const FEATURED_PACKAGES: FeaturedTour[] = [
     tagline: 'Nungwi & Kendwa beaches',
     duration: 'Full Day',
     slug: 'north-full-day-combo',
-    image: '/images/nungwi-kendwa.webp',
+    image: '/images/tours/Sunset/Zanzibar_Dhow_Sunset_Cruise_03.jpg.jpeg',
   },
 ];
 
@@ -149,7 +149,7 @@ export const ALL_TOURS: Tour[] = [
       'Freddie Mercury birthplace & House of Wonders',
       'Authentic Darajani spice and fruit market',
     ],
-    image: '/images/stone-town.webp',
+    image: '/images/tours/Stonetown/ZOM_0097.JPG-300kb.jpg',
     featured: false,
   },
   {
@@ -180,7 +180,7 @@ export const ALL_TOURS: Tour[] = [
       'Crystal-clear turquoise coastal waters',
       'Panoramic ocean views back to Stone Town',
     ],
-    image: '/images/prison-island.webp',
+    image: '/images/tours/Prison/PXL_20260819_103528045.MP.jpg-200kb.jpg',
     featured: false,
   },
   {
@@ -210,7 +210,7 @@ export const ALL_TOURS: Tour[] = [
       'Fresh mangoes, pineapples, watermelon & coconuts',
       'Private sun tent shade setup',
     ],
-    image: '/images/nakupenda.webp',
+    image: '/images/tours/Nakupenda/Nakupenda-Island-Zan-The-Level-2.jpg.jpeg',
     featured: false,
   },
   {
@@ -244,7 +244,7 @@ export const ALL_TOURS: Tour[] = [
       'Rich culture + exotic wildlife + ocean relaxation',
       'All transfer logistics taken care of by Ibrahim',
     ],
-    image: '/images/stone-town-prison-island.webp',
+    image: '/images/tours/Stonetown/ZOM_0097.JPG-300kb.jpg',
     featured: true,
   },
   {
@@ -274,7 +274,7 @@ export const ALL_TOURS: Tour[] = [
       'Crystal clear 20+ meter visibility waters',
       'Fresh coconut water & sweet seasonal fruits',
     ],
-    image: '/images/mnemba-island.webp',
+    image: '/images/tours/Mnemba/Mnemba-Island-4.jpg.jpeg',
     featured: true,
   },
   {
@@ -303,7 +303,7 @@ export const ALL_TOURS: Tour[] = [
       'Traditional palm leaf crafts & crown gifts',
       'Opportunity to purchase fresh farm spices directly',
     ],
-    image: '/images/spice-tour.webp',
+    image: '/images/tours/SpiceFarm/2X7A7374.jpg-100kb.jpg',
     featured: false,
   },
   {
@@ -332,7 +332,7 @@ export const ALL_TOURS: Tour[] = [
       'Relaxing Swahili coastal atmosphere',
       'Ideal for couples, honeymooners and families',
     ],
-    image: '/images/sunset-cruise.webp',
+    image: '/images/tours/Sunset/Zanzibar_Dhow_Sunset_Cruise_03.jpg.jpeg',
     featured: false,
   },
   {
@@ -364,7 +364,7 @@ export const ALL_TOURS: Tour[] = [
       'Romantic dhow sunset sail on the ocean',
       'Maximum value multi-destination full-day itinerary',
     ],
-    image: '/images/north-combo.webp',
+    image: '/images/tours/Sunset/Zanzibar_Dhow_Sunset_Cruise_03.jpg.jpeg',
     featured: false,
   },
   {
@@ -393,7 +393,7 @@ export const ALL_TOURS: Tour[] = [
       'Elevated mangrove swamp boardwalk',
       'Rich birdlife, medicinal plants and butterflies',
     ],
-    image: '/images/jozani-forest.webp',
+    image: '/images/tours/Jozani/6803148a-2b22-4f22-be2f-0825a2159110.jpg.jpeg',
     featured: false,
   },
   {
@@ -422,7 +422,7 @@ export const ALL_TOURS: Tour[] = [
       'Unique natural coral stone tidal lagoon',
       'Educational conservation talk by local caretakers',
     ],
-    image: '/images/turtle-cave.webp',
+    image: '/images/tours/Salam_Cave/038e96383d328557908a6b117db3326a876263affc1f3340270b8eae1a27f946.jpg.jpeg',
     featured: false,
   },
   {
@@ -450,7 +450,7 @@ export const ALL_TOURS: Tour[] = [
       'Combine with relaxation on gorgeous Michamvi beach',
       'Stress-free roundtrip private transfer',
     ],
-    image: '/images/the-rock.webp',
+    image: '/images/tours/Rock_Restaurant/The-rock-zanzibar-aerial-view.webp',
     featured: true,
   },
   {
@@ -482,7 +482,7 @@ export const ALL_TOURS: Tour[] = [
       'Private, comfortable, air-conditioned vehicle all day',
       'Customizable pacing for family or romantic couples',
     ],
-    image: '/images/south-combo.webp',
+    image: '/images/tours/Rock_Restaurant/The-rock-zanzibar-aerial-view.webp',
     featured: false,
   },
   {
@@ -515,7 +515,7 @@ export const ALL_TOURS: Tour[] = [
       'Mangrove lagoon natural swimming pool',
       'Giant 500-year-old baobab tree climb on Kwale Island',
     ],
-    image: '/images/safari-blue.webp',
+    image: '/images/tours/Safariblue/the-original-safari-blue.jpg.jpeg',
     featured: true,
   },
   {
@@ -547,7 +547,7 @@ export const ALL_TOURS: Tour[] = [
       'Support community-based sustainable tourism',
       'Take home authentic recipe secrets from Zanzibar',
     ],
-    image: '/images/village-tour.webp',
+    image: '/images/tours/Village/Look-like-locals.jpg.jpeg',
     featured: false,
   },
 ];

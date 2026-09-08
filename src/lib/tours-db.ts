@@ -14,21 +14,25 @@ export async function getPublicTours(): Promise<Tour[]> {
     });
 
     if (!dbTours || dbTours.length === 0) {
-      return ALL_TOURS.map((t) => ({ ...t, image: undefined }));
+      return ALL_TOURS;
     }
 
     // Map each active DB tour to public Tour model
     return dbTours.map((dbTour) => {
       const staticTour = ALL_TOURS.find((d) => d.slug === dbTour.slug);
 
-      // Extract valid images (Cloudinary or absolute URLs)
+      // Extract valid images (Cloudinary, absolute URLs, or local /images/... paths)
       const validImages = dbTour.images.filter(
-        (img) => img.url.startsWith('http://') || img.url.startsWith('https://')
+        (img) =>
+          Boolean(img.url) &&
+          (img.url.startsWith('http://') ||
+            img.url.startsWith('https://') ||
+            img.url.startsWith('/'))
       );
 
       // Determine hero image
       const hero = validImages.find((img) => img.isHero) || validImages[0];
-      const imageUrl = hero?.url || undefined;
+      const imageUrl = hero?.url || staticTour?.image || undefined;
 
       if (staticTour) {
         return {
@@ -38,11 +42,15 @@ export async function getPublicTours(): Promise<Tour[]> {
           description: dbTour.description || staticTour.description,
           featured: dbTour.isFeatured ?? staticTour.featured,
           image: imageUrl,
-          images: validImages.map((img) => ({
-            url: img.url,
-            alt: img.alt,
-            isHero: img.isHero,
-          })),
+          images:
+            validImages.length > 0
+              ? validImages.map((img) => ({
+                  url: img.url,
+                  alt: img.alt || staticTour.title,
+                  isHero: img.isHero,
+                }))
+              : staticTour.images ||
+                (imageUrl ? [{ url: imageUrl, alt: staticTour.title, isHero: true }] : []),
         };
       }
 
@@ -92,7 +100,7 @@ export async function getPublicTours(): Promise<Tour[]> {
     });
   } catch (err) {
     console.error('Error fetching public tours from DB:', err);
-    return ALL_TOURS.map((t) => ({ ...t, image: undefined }));
+    return ALL_TOURS;
   }
 }
 
