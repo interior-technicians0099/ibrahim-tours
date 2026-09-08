@@ -53,7 +53,8 @@ export async function GET() {
         checks: {
           database: {
             status: 'down',
-            error: process.env.NODE_ENV === 'production' ? 'Database connection error' : err.message,
+            hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+            error: err.message,
           },
         },
         durationMs: totalDurationMs,
