@@ -63,6 +63,35 @@ export default async function TourDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  return <TourDetail tour={tour} />;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'TouristTrip',
+    name: tour.title,
+    description: tour.description,
+    touristType: ['Travelers', 'Couples', 'Families'],
+    offers: {
+      '@type': 'Offer',
+      price: (tour.startingPriceCents ? tour.startingPriceCents / 100 : (tour.pricing?.single || 120)).toString(),
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      validFrom: '2026-01-01',
+    },
+    provider: {
+      '@type': 'TravelAgency',
+      name: OPERATOR.businessName,
+      telephone: OPERATOR.phone,
+      email: OPERATOR.email,
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <TourDetail tour={tour} />
+    </>
+  );
 }
 
