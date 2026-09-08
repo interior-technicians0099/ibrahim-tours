@@ -36,7 +36,7 @@ export async function generateMetadata({
 
   return {
     title: `${tour.title} | ${OPERATOR.businessName}`,
-    description: `${tour.tagline}. ${tour.description.slice(0, 150)}... Book private tour with Ibrahim. Zero prepayment required.`,
+    description: `${tour.tagline}. ${tour.description.slice(0, 150)}... Book private tour with Ibrahim with direct transparent pricing.`,
     keywords: [
       tour.title,
       'Zanzibar Tours',
