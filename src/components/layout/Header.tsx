@@ -14,23 +14,25 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
-import { getWhatsAppLink } from '@/lib/utils';
 import MobileMenu from './MobileMenu';
-
-const NAV_LINKS = [
-  { name: 'Home', href: '/' },
-  { name: 'Meet Ibrahim', href: '/about' },
-  { name: 'Tours', href: '/tours' },
-  { name: 'Transportation', href: '/transportation' },
-  { name: 'Reviews', href: '/reviews' },
-  { name: 'FAQ', href: '/faq' },
-  { name: 'Contact', href: '/contact' },
-];
+import LanguageSelector from './LanguageSelector';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function Header() {
   const pathname = usePathname();
+  const { t, getLocalizedWhatsAppLink } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const navLinks = [
+    { name: t('nav.home'), href: '/' },
+    { name: t('nav.about'), href: '/about' },
+    { name: t('nav.tours'), href: '/tours' },
+    { name: t('nav.transportation'), href: '/transportation' },
+    { name: t('nav.reviews'), href: '/reviews' },
+    { name: t('nav.faq'), href: '/faq' },
+    { name: t('nav.contact'), href: '/contact' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -75,13 +77,13 @@ export default function Header() {
               className="hidden lg:flex items-center gap-1 xl:gap-2"
               aria-label="Main Navigation"
             >
-              {NAV_LINKS.map((link) => {
+              {navLinks.map((link) => {
                 const isActive =
                   pathname === link.href ||
                   (link.href !== '/' && pathname.startsWith(link.href));
                 return (
                   <Link
-                    key={link.name}
+                    key={link.href}
                     href={link.href}
                     className={`px-3 py-2 rounded-xl text-xs xl:text-sm font-bold transition-all focus-visible:ring-2 focus-visible:ring-sky-500 ${
                       isActive
@@ -95,18 +97,21 @@ export default function Header() {
               })}
             </nav>
 
-            {/* Desktop Action CTAs */}
-            <div className="hidden sm:flex items-center gap-3">
+            {/* Desktop Action CTAs + Global Language Selector */}
+            <div className="hidden sm:flex items-center gap-2.5">
+              {/* Desktop Language Selector */}
+              <LanguageSelector variant="desktop" />
+
               {/* WhatsApp Direct Action */}
               <a
-                href={getWhatsAppLink()}
+                href={getLocalizedWhatsAppLink('default')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-bold shadow-2xs transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500"
                 aria-label="Direct WhatsApp Chat with Ibrahim"
               >
                 <MessageCircle className="w-4 h-4 text-emerald-600 fill-current" />
-                <span className="hidden md:inline">WhatsApp Us</span>
+                <span className="hidden md:inline">{t('nav.whatsAppUs')}</span>
               </a>
 
               {/* Book Now Primary Button */}
@@ -115,14 +120,14 @@ export default function Header() {
                 className="inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 active:from-sky-800 active:to-blue-800 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 <CalendarCheck className="w-4 h-4" />
-                <span>Book Request</span>
+                <span>{t('nav.bookRequest')}</span>
               </Link>
             </div>
 
             {/* Mobile Actions: WhatsApp Icon + Hamburger Trigger */}
             <div className="flex sm:hidden items-center gap-2">
               <a
-                href={getWhatsAppLink()}
+                href={getLocalizedWhatsAppLink('default')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs transition-transform active:scale-95"
@@ -149,11 +154,11 @@ export default function Header() {
         </div>
       </header>
 
-      {/* Slide-down Mobile Menu Drawer */}
+      {/* Slide-in Mobile Menu Drawer */}
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        links={NAV_LINKS}
+        links={navLinks}
       />
     </>
   );

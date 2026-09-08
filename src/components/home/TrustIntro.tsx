@@ -12,8 +12,20 @@ import {
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
+import { prisma } from '@/lib/prisma';
 
-export default function TrustIntro() {
+export default async function TrustIntro() {
+  let traLicenseNumber: string | null = null;
+  try {
+    const operator = await prisma.operatorProfile.findFirst();
+    const isNotExpired = !operator?.traLicenseExpiry || new Date(operator.traLicenseExpiry) > new Date();
+    if (operator?.traLicenseNumber && isNotExpired) {
+      traLicenseNumber = operator.traLicenseNumber;
+    }
+  } catch {
+    traLicenseNumber = null;
+  }
+
   return (
     <section className="py-20 bg-white relative overflow-hidden border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -38,9 +50,9 @@ export default function TrustIntro() {
                     <span className="text-xs text-amber-300 font-semibold tracking-wide">
                       Lead Licensed Guide & Owner
                     </span>
-                    <div className="mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 text-[11px] font-medium text-emerald-400 border border-emerald-500/30">
+                    <div className="mt-3 flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/90 text-[11px] font-extrabold text-emerald-400 border border-emerald-500/30">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Zanzibar Tourism Certified</span>
+                      <span>{traLicenseNumber ? `TRA / ZCT Verified: ${traLicenseNumber}` : 'Zanzibar Tourism Certified'}</span>
                     </div>
                   </div>
                 </div>

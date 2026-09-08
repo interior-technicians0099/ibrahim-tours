@@ -1,15 +1,15 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {
   Clock,
-  MapPin,
-  Car,
   MessageCircle,
   ArrowRight,
-  ShieldCheck,
 } from 'lucide-react';
 import { TransferRoute } from '@/lib/types';
 import { formatPrice, getTransferWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface TransferCardProps {
   route: TransferRoute;
@@ -17,12 +17,7 @@ interface TransferCardProps {
 }
 
 export default function TransferCard({ route, isPopular = false }: TransferCardProps) {
-  const lowestPrice = Math.min(
-    route.pricing.van1to3,
-    route.pricing.van4to6,
-    route.pricing.miniBus7to12,
-    route.pricing.bigBus13to25
-  );
+  const { t, locale } = useLanguage();
 
   return (
     <article
@@ -57,7 +52,7 @@ export default function TransferCard({ route, isPopular = false }: TransferCardP
             <div className="w-2.5 h-2.5 rounded-full bg-sky-500 shrink-0" />
             <span>{route.origin}</span>
           </div>
-          <div className="w-0.5 h-3.5 bg-slate-200 ml-1" />
+          <div className="w-0.5 h-3.5 bg-slate-200 ml-1 rtl:mr-1 rtl:ml-0" />
           <div className="flex items-center gap-2.5 text-sm font-bold text-slate-900">
             <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
             <span>{route.destination}</span>
@@ -78,7 +73,7 @@ export default function TransferCard({ route, isPopular = false }: TransferCardP
             </div>
           </div>
 
-          <div className="text-right">
+          <div className="text-right rtl:text-left">
             <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
               Mini Bus (7–12)
             </span>
@@ -95,12 +90,12 @@ export default function TransferCard({ route, isPopular = false }: TransferCardP
           href={`/transportation/${route.id}`}
           className="inline-flex items-center justify-center gap-1.5 min-h-[44px] py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-bold text-xs shadow-xs transition-colors text-center"
         >
-          <span>View Details</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <span>{t('featuredTours.viewAll')}</span>
+          <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
         </Link>
 
         <a
-          href={getTransferWhatsAppLink(route.origin, route.destination)}
+          href={getTransferWhatsAppLink(route.origin, route.destination, locale)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-1.5 min-h-[44px] py-2 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-xs shadow-xs shadow-emerald-500/20 transition-colors text-center"

@@ -22,7 +22,7 @@ export default function PricingTable({ pricing, tourTitle }: PricingTableProps) 
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold self-start sm:self-auto">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Zero Hidden Fees • Pay on Arrival</span>
+          <span>Zero Hidden Fees • Full Payment Required</span>
         </div>
       </div>
 

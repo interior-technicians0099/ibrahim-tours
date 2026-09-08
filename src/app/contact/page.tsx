@@ -15,6 +15,8 @@ import {
   Send,
   CheckCircle2,
   Sparkles,
+  AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
@@ -24,11 +26,48 @@ export default function ContactPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  const [honeypot, setHoneypot] = useState('');
+  const [consent, setConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    if (!consent) {
+      setErrorMessage('You must agree to the Privacy Policy to send an inquiry.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          message,
+          consent,
+          honeypot,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit message.');
+      }
+
+      setSubmitted(true);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const dynamicWhatsAppLink = getWhatsAppLink(
@@ -248,6 +287,25 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form onSubmit={handleFormSubmit} className="space-y-4">
+                  {errorMessage && (
+                    <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+                      <span>{errorMessage}</span>
+                    </div>
+                  )}
+
+                  {/* Honeypot spam prevention */}
+                  <div className="hidden" aria-hidden="true">
+                    <input
+                      type="text"
+                      name="organization_role_confirm"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                    />
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label
@@ -321,13 +379,48 @@ export default function ContactPage() {
                     />
                   </div>
 
+                  {/* GDPR Consent */}
+                  <div className="pt-1">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="contact-gdpr-consent"
+                        required
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer"
+                      />
+                      <span className="text-xs text-slate-600 leading-relaxed select-none">
+                        I agree to the processing of my contact information in accordance with the{' '}
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          className="text-sky-600 font-semibold underline hover:text-sky-700"
+                        >
+                          Privacy Policy
+                        </Link>
+                        . (Required)
+                      </span>
+                    </label>
+                  </div>
+
                   <div className="pt-2 flex flex-col sm:flex-row gap-3">
                     <button
                       type="submit"
-                      className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-sm shadow-md transition-all active:scale-95 text-center"
+                      disabled={isSubmitting}
+                      className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-sky-600 hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm shadow-md transition-all active:scale-95 text-center"
                     >
-                      <Send className="w-4 h-4" />
-                      <span>Prepare WhatsApp Message</span>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Sending Message...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          <span>Send Message to Ibrahim</span>
+                        </>
+                      )}
                     </button>
 
                     <a

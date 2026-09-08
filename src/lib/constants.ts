@@ -164,7 +164,7 @@ export const ALL_TOURS: Tour[] = [
     pricing: {
       single: 155,
       couple: 190,
-      group5to10: 97,
+      group5to10: 94,
     },
     inclusions: [
       'Marine conservation fees',

@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from 'next';
+import { cookies } from 'next/headers';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import MobileStickyBar from '@/components/layout/MobileStickyBar';
 import { OPERATOR } from '@/lib/constants';
+import { LanguageProvider } from '@/lib/i18n/LanguageContext';
+import { isSupportedLocale, Locale, DEFAULT_LOCALE } from '@/lib/i18n';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -70,18 +73,35 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get('locale')?.value;
+  const initialLocale: Locale = isSupportedLocale(localeCookie || '')
+    ? (localeCookie as Locale)
+    : DEFAULT_LOCALE;
+  const initialDir = initialLocale === 'ar' ? 'rtl' : 'ltr';
+
   return (
-    <html lang="en" className={`${inter.variable} scroll-smooth`}>
-      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-sky-500 selection:text-white">
-        <Header />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-        <MobileStickyBar />
+    <html
+      lang={initialLocale}
+      dir={initialDir}
+      className={`${inter.variable} scroll-smooth`}
+      suppressHydrationWarning
+    >
+      <body
+        className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-sky-500 selection:text-white"
+        suppressHydrationWarning
+      >
+        <LanguageProvider initialLocale={initialLocale}>
+          <Header />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+          <MobileStickyBar />
+        </LanguageProvider>
       </body>
     </html>
   );

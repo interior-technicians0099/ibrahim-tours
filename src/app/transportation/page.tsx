@@ -18,14 +18,21 @@ import { TRANSFER_ROUTES, VEHICLES, OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink, formatPrice } from '@/lib/utils';
 import VehicleCard from '@/components/transport/VehicleCard';
 import TransferCard from '@/components/transport/TransferCard';
+import { cookies } from 'next/headers';
+import { getDictionary } from '@/lib/i18n';
+import { Locale } from '@/lib/i18n/types';
 
 export const metadata: Metadata = {
   title: 'Transportation & Transfers | Private Zanzibar Taxi & Airport Pickup',
   description:
-    'Reliable private airport transfers and island-wide taxi services in Zanzibar with Ibrahim. Clean AC vans and buses, fixed transparent prices, free airport meet & greet, and zero advance deposit.',
+    'Reliable private airport transfers and island-wide taxi services in Zanzibar with Ibrahim. Clean AC vans and buses, fixed transparent prices, free airport meet & greet, and verified direct booking.',
 };
 
-export default function TransportationPage() {
+export default async function TransportationPage() {
+  const cookieStore = await cookies();
+  const locale = (cookieStore.get('locale')?.value as Locale) || 'en';
+  const dict = getDictionary(locale);
+
   const popularRouteIds = ['trans-1', 'trans-2', 'trans-3'];
   const popularRoutes = TRANSFER_ROUTES.filter((r) => popularRouteIds.includes(r.id));
   const otherRoutes = TRANSFER_ROUTES.filter((r) => !popularRouteIds.includes(r.id));
@@ -49,24 +56,24 @@ export default function TransportationPage() {
             aria-label="Breadcrumb"
           >
             <Link href="/" className="hover:text-white transition-colors">
-              Home
+              {dict.nav.home}
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-sky-300 font-semibold">Transportation & Transfers</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 rtl:rotate-180" />
+            <span className="text-sky-300 font-semibold">{dict.nav.transportation}</span>
           </nav>
 
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold uppercase tracking-wider mb-4">
               <Car className="w-4 h-4 text-sky-400" />
-              <span>Island-Wide Private Transport</span>
+              <span>{dict.hero.badgePrivate} • {dict.common.licensedGuide}</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Transportation & Transfers
+              {dict.nav.transportation}
             </h1>
 
             <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-              Enjoy peaceful, safe, and air-conditioned private transportation anywhere in Zanzibar. We provide fixed-rate airport pickups, inter-resort transfers, ferry connections, and full-day private chauffeur services.
+              {dict.booking.subtitle}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4 text-xs font-semibold text-slate-200">
@@ -76,7 +83,7 @@ export default function TransportationPage() {
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
                 <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Zero Advance Deposit</span>
+                <span>{dict.featuredTours.securePayment}</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10">
                 <Clock className="w-4 h-4 text-amber-400" />

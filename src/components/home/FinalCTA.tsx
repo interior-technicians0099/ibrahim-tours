@@ -1,20 +1,22 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {
   CalendarCheck,
   MessageCircle,
   ShieldCheck,
-  Compass,
   Phone,
   Mail,
   Sparkles,
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function FinalCTA() {
-  const finalCtaWhatsAppMsg =
-    'Hello Ibrahim! I am ready to plan my Zanzibar adventure. Can you help me organize our itinerary?';
+  const { t } = useLanguage();
+  const whatsAppMsg = t('whatsapp.defaultGreeting');
 
   return (
     <section className="py-20 bg-slate-100 relative">
@@ -28,17 +30,15 @@ export default function FinalCTA() {
           <div className="max-w-3xl mx-auto relative z-10">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-amber-300 text-xs sm:text-sm font-bold mb-6">
               <Sparkles className="w-4 h-4" />
-              <span>Personalized Itineraries & Flexible Dates</span>
+              <span>{t('whyChoose.feature2Badge')} • {t('common.licensedGuide')}</span>
             </div>
 
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight">
-              Ready for your Zanzibar adventure?
+              {t('finalCta.title')}
             </h2>
 
             <p className="mt-4 text-slate-200 text-sm sm:text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
-              Let Ibrahim personally arrange your private island tours, boat
-              charters, and airport transfers. No prepayment required—pay upon
-              arrival in cash or M-Pesa.
+              {t('finalCta.description')}
             </p>
 
             {/* CTAs */}
@@ -48,17 +48,17 @@ export default function FinalCTA() {
                 className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-base shadow-xl shadow-amber-500/25 transition-all hover:scale-105 active:scale-95"
               >
                 <CalendarCheck className="w-5 h-5" />
-                <span>Request Booking</span>
+                <span>{t('finalCta.bookOnline')}</span>
               </Link>
 
               <a
-                href={getWhatsAppLink(finalCtaWhatsAppMsg)}
+                href={getWhatsAppLink(whatsAppMsg)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-extrabold text-base shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
               >
                 <MessageCircle className="w-5 h-5 fill-current" />
-                <span>WhatsApp Us</span>
+                <span>{t('finalCta.chatWhatsApp')}</span>
               </a>
             </div>
 
@@ -69,7 +69,7 @@ export default function FinalCTA() {
                 className="flex items-center gap-1.5 hover:text-white transition-colors"
               >
                 <Phone className="w-3.5 h-3.5 text-amber-400" />
-                <span>Call Guide: {OPERATOR.phone}</span>
+                <span>{t('finalCta.orCall')} {OPERATOR.phone}</span>
               </a>
               <span className="hidden sm:inline text-slate-500">•</span>
               <a
@@ -82,7 +82,7 @@ export default function FinalCTA() {
               <span className="hidden sm:inline text-slate-500">•</span>
               <span className="flex items-center gap-1.5 text-emerald-300">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Licensed Zanzibar Tourism Guide</span>
+                <span>{t('common.licensedGuide')} • {OPERATOR.location}</span>
               </span>
             </div>
           </div>

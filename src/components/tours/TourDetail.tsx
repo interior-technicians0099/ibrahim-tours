@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Clock,
@@ -10,6 +12,9 @@ import {
   MapPin,
   Sparkles,
   ChevronRight,
+  ChevronLeft,
+  ZoomIn,
+  Maximize2,
   Info,
   Car,
   HeartHandshake,
@@ -25,6 +30,7 @@ import { ALL_TOURS, OPERATOR } from '@/lib/constants';
 import { formatPrice, getTourWhatsAppLink } from '@/lib/utils';
 import PricingTable from '@/components/ui/PricingTable';
 import TourCard from '@/components/tours/TourCard';
+import TourPhotoLightbox, { LightboxImage } from '@/components/tours/TourPhotoLightbox';
 
 interface TourDetailProps {
   tour: Tour;
@@ -50,6 +56,22 @@ function getCategoryIcon(category: TourCategory) {
 }
 
 export default function TourDetail({ tour }: TourDetailProps) {
+  // Collect all valid photos
+  const galleryImages: LightboxImage[] = useMemo(() => {
+    if (tour.images && tour.images.length > 0) {
+      return tour.images.map((img) => ({
+        url: img.url,
+        alt: img.alt || tour.title,
+      }));
+    }
+    return tour.image ? [{ url: tour.image, alt: tour.title }] : [];
+  }, [tour.images, tour.image]);
+
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  const activeImage = galleryImages[selectedImageIndex]?.url || tour.image;
+
   // Find up to 3 related tours from the same category (or other tours if not enough)
   const relatedTours = ALL_TOURS.filter((t) => t.id !== tour.id)
     .sort((a, b) => {
@@ -58,6 +80,7 @@ export default function TourDetail({ tour }: TourDetailProps) {
       return 0;
     })
     .slice(0, 3);
+
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -122,18 +145,149 @@ export default function TourDetail({ tour }: TourDetailProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* Main Column (8 cols) */}
           <div className="lg:col-span-8 space-y-10">
-            {/* Hero Visual Image Placeholder */}
-            <div className="relative aspect-[16/9] rounded-3xl bg-gradient-to-br from-sky-950 via-slate-900 to-slate-950 overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center p-6 text-center">
-              <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
-              <div className="relative z-10 flex flex-col items-center space-y-3">
-                <div className="w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-amber-300 shadow-xl">
-                  {getCategoryIcon(tour.category)}
-                </div>
-                <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">
-                  Zanzibar Private Experience • Guided by Ibrahim
-                </span>
-              </div>
+            {/* Hero Visual Image */}
+            <div className="relative aspect-[16/9] rounded-3xl bg-gradient-to-br from-sky-950 via-slate-900 to-slate-950 overflow-hidden border border-slate-800 shadow-2xl flex items-center justify-center text-center group select-none">
+              {activeImage ? (
+                <>
+                  <img
+                    src={activeImage}
+                    alt={galleryImages[selectedImageIndex]?.alt || tour.title}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 cursor-pointer"
+                    onClick={() => setIsLightboxOpen(true)}
+                  />
+
+                  {/* Top-right "View & Zoom" button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="absolute top-4 right-4 z-20 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/75 hover:bg-slate-900 backdrop-blur-md text-white text-xs font-bold border border-white/15 shadow-xl transition-all hover:scale-105 active:scale-95"
+                  >
+                    <ZoomIn className="w-3.5 h-3.5 text-sky-400" />
+                    <span>View & Zoom</span>
+                  </button>
+
+                  {/* Left / Right arrows if multiple photos */}
+                  {galleryImages.length > 1 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImageIndex(
+                            (prev) => (prev - 1 + galleryImages.length) % galleryImages.length
+                          );
+                        }}
+                        aria-label="Previous photo"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white backdrop-blur-xs transition-all shadow-xl active:scale-90"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedImageIndex(
+                            (prev) => (prev + 1) % galleryImages.length
+                          );
+                        }}
+                        aria-label="Next photo"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-slate-950/70 hover:bg-slate-950 text-white backdrop-blur-xs transition-all shadow-xl active:scale-90"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+
+                      {/* Photo counter */}
+                      <div className="absolute bottom-4 left-4 z-20 px-3 py-1 rounded-full bg-slate-950/75 backdrop-blur-md text-white text-[11px] font-bold border border-white/10 shadow-md">
+                        Photo {selectedImageIndex + 1} of {galleryImages.length}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Hover hint */}
+                  <div
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex items-center justify-center pointer-events-none"
+                  >
+                    <span className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-md text-white text-xs font-bold flex items-center gap-2 shadow-2xl">
+                      <Maximize2 className="w-4 h-4 text-sky-400" />
+                      <span>Click to open Fullscreen & Zoom</span>
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
+                  <div className="relative z-10 flex flex-col items-center space-y-3">
+                    <div className="w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-amber-300 shadow-xl">
+                      {getCategoryIcon(tour.category)}
+                    </div>
+                    <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">
+                      Zanzibar Private Experience • Guided by Ibrahim
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
+
+            {/* Photo Gallery if more than 1 image is uploaded */}
+            {galleryImages.length > 1 && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>Tour Photo Gallery</span>
+                    <span className="text-xs font-normal text-slate-400">
+                      ({galleryImages.length} photos - tap to view & zoom)
+                    </span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsLightboxOpen(true)}
+                    className="text-xs font-bold text-sky-600 hover:text-sky-800 flex items-center gap-1 transition-colors"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>View Fullscreen</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {galleryImages.map((img, i) => {
+                    const isSelected = i === selectedImageIndex;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSelectedImageIndex(i)}
+                        className={`relative aspect-video rounded-2xl overflow-hidden border text-left group transition-all duration-300 ${
+                          isSelected
+                            ? 'ring-3 ring-sky-500 ring-offset-2 ring-offset-slate-50 border-sky-400 shadow-md scale-[1.02]'
+                            : 'border-slate-200 shadow-xs bg-slate-100 hover:scale-[1.02] hover:opacity-95'
+                        }`}
+                      >
+                        <img
+                          src={img.url}
+                          alt={img.alt || `${tour.title} photo ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+
+                        {/* Active Indicator Badge */}
+                        {isSelected && (
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-bold shadow-md">
+                            Viewing
+                          </div>
+                        )}
+
+                        {/* Hover Zoom Overlay Icon */}
+                        <div className="absolute inset-0 bg-sky-950/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ZoomIn className="w-5 h-5 text-white drop-shadow-md" />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* 2. Tour Description & Overview */}
             <section className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xs space-y-6">
@@ -259,7 +413,7 @@ export default function TourDetail({ tour }: TourDetailProps) {
                 <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
                   <span>Starting From</span>
                   <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    Pay on Arrival
+                    Secure Payment via M-Pesa / Bank
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5">
@@ -357,6 +511,15 @@ export default function TourDetail({ tour }: TourDetailProps) {
           </section>
         )}
       </main>
+
+      {/* Interactive Fullscreen Photo Lightbox with Zoom & Pan */}
+      <TourPhotoLightbox
+        images={galleryImages}
+        initialIndex={selectedImageIndex}
+        isOpen={isLightboxOpen}
+        onClose={() => setIsLightboxOpen(false)}
+        tourTitle={tour.title}
+      />
     </div>
   );
 }

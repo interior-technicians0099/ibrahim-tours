@@ -1,64 +1,62 @@
+'use client';
+
 import React from 'react';
 import {
-  ShieldCheck,
   BadgePercent,
   CalendarCheck,
   Sparkles,
-  HeartHandshake,
   Compass,
   CheckCircle,
 } from 'lucide-react';
-import { OPERATOR } from '@/lib/constants';
-
-const TRUST_CARDS = [
-  {
-    icon: <Compass className="w-6 h-6 text-sky-600" />,
-    title: '100% Native Local Guide',
-    description:
-      'Ibrahim was born and raised in Zanzibar with over 10 years of professional guiding experience. Discover authentic hidden spots big tour buses never reach.',
-    badge: 'Native Islander',
-  },
-  {
-    icon: <BadgePercent className="w-6 h-6 text-emerald-600" />,
-    title: 'Transparent USD Pricing',
-    description:
-      'What you see is what you pay. All marine park fees, boat charters, entrance tickets, and driver fees are explicitly clarified with zero hidden charges.',
-    badge: 'Zero Hidden Fees',
-  },
-  {
-    icon: <CalendarCheck className="w-6 h-6 text-amber-600" />,
-    title: 'No Online Prepayment',
-    description:
-      'Book with complete peace of mind. Simply submit your request or message on WhatsApp to lock in your dates, and pay safely in cash or M-Pesa on arrival.',
-    badge: 'Pay on Arrival',
-  },
-  {
-    icon: <Sparkles className="w-6 h-6 text-indigo-600" />,
-    title: 'Private & Customized Tours',
-    description:
-      'Every tour and transfer is 100% private for you and your travel companions. Enjoy flexible departure times and customized stops at your own rhythm.',
-    badge: '100% Private',
-  },
-];
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function WhyChooseOperator() {
+  const { t } = useLanguage();
+
+  const trustCards = [
+    {
+      icon: <Compass className="w-6 h-6 text-sky-600" />,
+      title: t('whyChoose.feature1Title'),
+      description: t('whyChoose.feature1Desc'),
+      badge: t('whyChoose.feature1Badge'),
+    },
+    {
+      icon: <Sparkles className="w-6 h-6 text-indigo-600" />,
+      title: t('whyChoose.feature2Title'),
+      description: t('whyChoose.feature2Desc'),
+      badge: t('whyChoose.feature2Badge'),
+    },
+    {
+      icon: <BadgePercent className="w-6 h-6 text-emerald-600" />,
+      title: t('whyChoose.feature3Title'),
+      description: t('whyChoose.feature3Desc'),
+      badge: t('whyChoose.feature3Badge'),
+    },
+    {
+      icon: <CalendarCheck className="w-6 h-6 text-amber-600" />,
+      title: t('whyChoose.feature4Title'),
+      description: t('whyChoose.feature4Desc'),
+      badge: t('whyChoose.feature4Badge'),
+    },
+  ];
+
   return (
     <section className="py-20 bg-white border-t border-slate-100 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
-            The Ibrahim Tours Difference
+            {t('whyChoose.badge')}
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mt-1">
-            Why Book with Ibrahim?
+            {t('whyChoose.title')}
           </h2>
           <p className="text-slate-600 text-sm sm:text-base mt-2">
-            Experience authentic Zanzibari warmth, seamless private logistics, and unmatched local expertise.
+            {t('whyChoose.subtitle')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {TRUST_CARDS.map((card, i) => (
+          {trustCards.map((card, i) => (
             <div
               key={i}
               className="bg-slate-50 rounded-3xl p-7 border border-slate-200/80 hover:border-sky-300 hover:bg-white hover:shadow-xl transition-all duration-300 flex flex-col justify-between"

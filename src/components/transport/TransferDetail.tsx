@@ -325,7 +325,7 @@ export default function TransferDetail({ route }: TransferDetailProps) {
                 <div className="flex items-center justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
                   <span>Starting From</span>
                   <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    Pay on Arrival
+                    Secure Payment via M-Pesa / Bank
                   </span>
                 </div>
                 <div className="flex items-baseline gap-1.5">
@@ -346,7 +346,7 @@ export default function TransferDetail({ route }: TransferDetailProps) {
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>No prepayment or credit card needed</span>
+                  <span>Full payment required to confirm</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />

@@ -7,23 +7,20 @@ import {
   ChevronDown,
   MessageCircle,
   ChevronRight,
-  ShieldCheck,
-  Sparkles,
-  Phone,
-  CheckCircle2,
 } from 'lucide-react';
-import { FAQ_ITEMS, OPERATOR } from '@/lib/constants';
+import { FAQ_ITEMS } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const { t } = useLanguage();
 
   const toggleFaq = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
 
-  const faqWhatsAppMsg =
-    'Hello Ibrahim! I have a question about booking tours in Zanzibar that was not answered in the FAQ.';
+  const faqWhatsAppMsg = t('whatsapp.faqQuestion');
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -39,24 +36,24 @@ export default function FAQPage() {
             aria-label="Breadcrumb"
           >
             <Link href="/" className="hover:text-white transition-colors">
-              Home
+              {t('nav.home')}
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-sky-300 font-semibold">Frequently Asked Questions</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 rtl:rotate-180" />
+            <span className="text-sky-300 font-semibold">{t('faq.title')}</span>
           </nav>
 
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold uppercase tracking-wider mb-4">
               <HelpCircle className="w-4 h-4 text-sky-400" />
-              <span>Everything You Need to Know</span>
+              <span>{t('faq.title')}</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Frequently Asked Questions
+              {t('faq.title')}
             </h1>
 
             <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-              Find clear answers regarding payment terms, booking confirmations, airport pickups, and custom itineraries for your trip to Zanzibar.
+              {t('faq.subtitle')}
             </p>
           </div>
         </div>
@@ -68,16 +65,19 @@ export default function FAQPage() {
         <div className="bg-white rounded-3xl p-6 sm:p-10 border border-slate-200/80 shadow-xl space-y-4">
           <div className="border-b border-slate-100 pb-4 mb-4">
             <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-              Booking & Policy Questions
+              {t('faq.title')}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Click any question below to view details.
+              {t('faq.subtitle')}
             </p>
           </div>
 
           <div className="space-y-3">
             {FAQ_ITEMS.map((faq, index) => {
               const isOpen = openIndex === index;
+              const questionText = t(`faq.q${faq.id}`) || faq.question;
+              const answerText = t(`faq.a${faq.id}`) || faq.answer;
+
               return (
                 <div
                   key={faq.id}
@@ -90,11 +90,11 @@ export default function FAQPage() {
                   <button
                     type="button"
                     onClick={() => toggleFaq(index)}
-                    className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 focus:outline-none"
+                    className="w-full p-5 sm:p-6 text-left rtl:text-right flex items-center justify-between gap-4 focus:outline-none"
                     aria-expanded={isOpen}
                   >
                     <span className="font-extrabold text-slate-900 text-sm sm:text-base">
-                      {faq.question}
+                      {questionText}
                     </span>
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-300 ${
@@ -109,7 +109,7 @@ export default function FAQPage() {
 
                   {isOpen && (
                     <div className="px-5 pb-6 sm:px-6 sm:pb-6 text-slate-600 text-xs sm:text-sm leading-relaxed border-t border-sky-100/60 pt-4 animate-in fade-in">
-                      <p>{faq.answer}</p>
+                      <p>{answerText}</p>
                     </div>
                   )}
                 </div>
@@ -120,15 +120,15 @@ export default function FAQPage() {
 
         {/* WhatsApp Help Banner */}
         <section className="bg-gradient-to-r from-slate-900 via-sky-950 to-slate-900 rounded-3xl p-8 sm:p-10 text-white border border-slate-800 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="space-y-1.5 text-center md:text-left max-w-lg">
+          <div className="space-y-1.5 text-center md:text-left rtl:md:text-right max-w-lg">
             <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
-              Have a Specific Question?
+              {t('common.language')} & Support
             </span>
             <h3 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              Ask Ibrahim Directly on WhatsApp
+              {t('faq.whatsAppBannerTitle')}
             </h3>
             <p className="text-slate-300 text-xs sm:text-sm">
-              We respond quickly to all custom inquiries, flight timings, and special requests.
+              {t('faq.whatsAppBannerDesc')}
             </p>
           </div>
 
@@ -139,7 +139,7 @@ export default function FAQPage() {
             className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all shrink-0 hover:scale-105 active:scale-95"
           >
             <MessageCircle className="w-4 h-4 fill-current" />
-            <span>Chat on WhatsApp</span>
+            <span>{t('faq.chatWhatsApp')}</span>
           </a>
         </section>
       </main>

@@ -38,6 +38,7 @@ export interface Tour {
   exclusions?: string[];
   highlights?: string[];
   image?: string;
+  images?: Array<{ url: string; alt?: string | null; isHero?: boolean }>;
   featured?: boolean;
 }
 

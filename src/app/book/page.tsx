@@ -1,23 +1,26 @@
 import React, { Suspense } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import {
-  CalendarCheck,
   ChevronRight,
-  ShieldCheck,
   Sparkles,
-  MessageCircle,
 } from 'lucide-react';
-import { OPERATOR } from '@/lib/constants';
 import BookingForm from '@/components/booking/BookingForm';
+import { getDictionary } from '@/lib/i18n';
+import { Locale } from '@/lib/i18n/types';
 
 export const metadata: Metadata = {
-  title: 'Request a Booking | Ibrahim Tours Zanzibar (No Advance Payment)',
+  title: 'Request a Booking | Ibrahim Tours Zanzibar (Secure Payment)',
   description:
-    'Submit your booking request for private Zanzibar excursions, Safari Blue, Stone Town tours, and airport transfers. Zero upfront deposit required. Operator confirms manually via WhatsApp.',
+    'Submit your booking request for private Zanzibar excursions, Safari Blue, Stone Town tours, and airport transfers. Verified direct confirmation with full payment via M-Pesa or Bank.',
 };
 
-export default function BookPage() {
+export default async function BookPage() {
+  const cookieStore = await cookies();
+  const locale = (cookieStore.get('locale')?.value as Locale) || 'en';
+  const dict = getDictionary(locale);
+
   return (
     <div className="bg-slate-50 min-h-screen">
       {/* 1. Header Banner */}
@@ -33,24 +36,24 @@ export default function BookPage() {
             aria-label="Breadcrumb"
           >
             <Link href="/" className="hover:text-white transition-colors">
-              Home
+              {dict.nav.home}
             </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-sky-300 font-semibold">Request Booking</span>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-600 rtl:rotate-180" />
+            <span className="text-sky-300 font-semibold">{dict.nav.bookRequest}</span>
           </nav>
 
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-200 text-xs font-bold uppercase tracking-wider mb-4">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Fast 30-Second Request Form</span>
+              <span>{dict.whyChoose.feature4Badge} • {dict.hero.badgeBookingSub}</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Request Your Zanzibar Booking
+              {dict.booking.title}
             </h1>
 
             <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-              No prepayment or credit card required. Choose your tour or transfer, submit your preferred date, and Ibrahim will personally confirm availability within 1 hour.
+              {dict.booking.subtitle}
             </p>
           </div>
         </div>

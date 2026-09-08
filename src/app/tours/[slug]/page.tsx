@@ -2,7 +2,10 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ALL_TOURS, OPERATOR } from '@/lib/constants';
+import { getPublicTourBySlug } from '@/lib/tours-db';
 import TourDetail from '@/components/tours/TourDetail';
+
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
   params: Promise<{
@@ -22,7 +25,7 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const tour = ALL_TOURS.find((t) => t.slug === slug);
+  const tour = await getPublicTourBySlug(slug);
 
   if (!tour) {
     return {
@@ -46,6 +49,7 @@ export async function generateMetadata({
       description: tour.tagline,
       url: `https://ibrahimtours.co.tz/tours/${tour.slug}`,
       siteName: OPERATOR.businessName,
+      images: tour.image ? [{ url: tour.image }] : undefined,
       type: 'article',
     },
   };
@@ -53,7 +57,7 @@ export async function generateMetadata({
 
 export default async function TourDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const tour = ALL_TOURS.find((t) => t.slug === slug);
+  const tour = await getPublicTourBySlug(slug);
 
   if (!tour) {
     notFound();
@@ -61,3 +65,4 @@ export default async function TourDetailPage({ params }: PageProps) {
 
   return <TourDetail tour={tour} />;
 }
+

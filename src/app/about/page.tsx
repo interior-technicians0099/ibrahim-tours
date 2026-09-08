@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     'Meet Ibrahim, your licensed local Zanzibari guide with 10+ years of experience. Fluent in English, Swahili, and Italian. Private tours in Stone Town, Nungwi, Paje, and island-wide.',
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
   const aboutWhatsAppMsg =
     'Hello Ibrahim! I read your story on the website and would love to plan our private Zanzibar trip with you.';
 
@@ -73,6 +73,15 @@ export default function AboutPage() {
     { label: 'Jozani Forest Monkeys', subtitle: 'Red Colobus Sanctuary' },
     { label: 'Sunset Dhow Cruise', subtitle: 'Swahili Ocean Music' },
   ];
+
+  let traLicenseNumber: string | null = null;
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const operator = await prisma.operatorProfile.findFirst();
+    traLicenseNumber = operator?.traLicenseNumber || null;
+  } catch {
+    traLicenseNumber = null;
+  }
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -143,10 +152,17 @@ export default function AboutPage() {
               </div>
 
               <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
-                <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Licensed Operator
-                </span>
+                {traLicenseNumber ? (
+                  <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 text-emerald-800 text-xs font-extrabold border border-emerald-300 flex items-center gap-1.5 shadow-sm">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>TRA / ZCT Verified: {traLicenseNumber}</span>
+                  </span>
+                ) : (
+                  <span className="px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Licensed Operator
+                  </span>
+                )}
                 <span className="px-3.5 py-1.5 rounded-full bg-sky-50 text-sky-700 text-xs font-bold border border-sky-200 flex items-center gap-1">
                   <Globe2 className="w-3.5 h-3.5" />
                   Fluent in English, Swahili, Italian
@@ -300,10 +316,10 @@ export default function AboutPage() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <h3 className="font-extrabold text-lg text-slate-900">
-                Pay on Arrival
+                Secure Payment via M-Pesa / Bank
               </h3>
               <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Zero upfront prepayment required. We confirm your date and you pay upon meeting Ibrahim in USD, EUR, GBP, or M-Pesa.
+                Your booking is confirmed once we receive full payment via the provided M-Pesa number or Bank details.
               </p>
             </div>
 

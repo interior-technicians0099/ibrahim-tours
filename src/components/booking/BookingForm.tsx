@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Compass,
   Car,
@@ -21,12 +21,17 @@ import {
   Baby,
   Globe2,
   ArrowRight,
+  FileText,
+  Loader2,
 } from 'lucide-react';
 import { ALL_TOURS, TRANSFER_ROUTES, OPERATOR } from '@/lib/constants';
 import { formatPrice, getWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function BookingForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { t, getLocalizedWhatsAppLink, locale } = useLanguage();
   const queryType = searchParams.get('type');
   const queryTour = searchParams.get('tour');
   const queryRoute = searchParams.get('route') || searchParams.get('transfer');
@@ -71,6 +76,10 @@ export default function BookingForm() {
   // Validation & Submission
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [honeypot, setHoneypot] = useState('');
+  const [gdprConsent, setGdprConsent] = useState(false);
   const [referenceCode, setReferenceCode] = useState('');
   const [copied, setCopied] = useState(false);
 
@@ -179,21 +188,86 @@ export default function BookingForm() {
       }
     }
 
+    if (!gdprConsent) {
+      errs.gdprConsent = 'You must agree to the Privacy Policy to submit your request';
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
       return;
     }
 
-    // Generate reference code
-    const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    const ref = `ZNZ-2026-${randomDigits}`;
-    setReferenceCode(ref);
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+    setApiError(null);
+
+    try {
+      const payload =
+        bookingType === 'tour'
+          ? {
+            serviceType: 'TOUR',
+            tourSlug: selectedTourSlug,
+            tourDate,
+            tourTime,
+            numAdults: parseInt(adults, 10) || 2,
+            numChildren: parseInt(children, 10) || 0,
+            pickupLocation: hotelLocation,
+            fullName,
+            email,
+            phone,
+            country,
+            specialRequests,
+            locale,
+            honeypot,
+          }
+          : {
+            serviceType: 'TRANSPORT',
+            routeId: selectedRouteId,
+            transportDate,
+            transportTime,
+            passengers: parseInt(passengers, 10) || 2,
+            luggageCount,
+            pickupLocation,
+            dropoffLocation,
+            fullName,
+            email,
+            phone,
+            country,
+            specialRequests,
+            locale,
+            honeypot,
+          };
+
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setApiError(data.error || 'Failed to submit booking request. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      setReferenceCode(data.referenceCode);
+      setIsSubmitted(true);
+      setIsSubmitting(false);
+      // Seamlessly redirect to confirmation page with full payment instructions
+      router.push(`/book/confirmation/${data.referenceCode}`);
+    } catch (err: any) {
+      setApiError(
+        err?.message ||
+        'A network error occurred. Please check your connection or contact Ibrahim directly on WhatsApp.'
+      );
+      setIsSubmitting(false);
+    }
   };
 
   const compiledWhatsAppText = useMemo(() => {
@@ -257,10 +331,10 @@ Please confirm driver dispatch and booking details!`;
         <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
           <strong className="block font-bold mb-0.5">
-            Booking Request Only — Zero Online Payment
+            Full Payment Required to Confirm
           </strong>
           <span className="text-amber-900 leading-relaxed">
-            This form is a booking request, not an instant credit-card charge. Ibrahim Tours Zanzibar will personally contact you via WhatsApp or Email to confirm availability and schedule. You pay on the day of the tour upon meeting your guide.
+            This form is a booking request, not an instant credit-card charge. Ibrahim Tours Zanzibar will personally contact you via WhatsApp or Email to confirm availability and schedule. You will receive an M-Pesa number or Bank Transfer details to make your full payment once availability is confirmed.
           </span>
         </div>
       </div>
@@ -310,16 +384,16 @@ Please confirm driver dispatch and booking details!`;
               ) : (
                 <>
                   <Copy className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Copy</span>
+                  <span>{t('booking.copyCode')}</span>
                 </>
               )}
             </button>
           </div>
 
           {/* 3 Next Steps */}
-          <div className="max-w-xl mx-auto text-left space-y-3 pt-2">
+          <div className="max-w-xl mx-auto text-left rtl:text-right space-y-3 pt-2">
             <h3 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
-              What Happens Next:
+              {t('confirmation.summaryTitle')}:
             </h3>
             <div className="space-y-2.5 text-xs sm:text-sm text-slate-600">
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-start gap-3">
@@ -327,8 +401,8 @@ Please confirm driver dispatch and booking details!`;
                   1
                 </div>
                 <div>
-                  <strong className="text-slate-900 block">Manual Availability Check:</strong>
-                  Ibrahim checks boat captain and vehicle schedules for your requested date.
+                  <strong className="text-slate-900 block">{t('confirmation.alertTitle')}</strong>
+                  <span>{t('booking.reviewTime')}</span>
                 </div>
               </div>
 
@@ -337,8 +411,8 @@ Please confirm driver dispatch and booking details!`;
                   2
                 </div>
                 <div>
-                  <strong className="text-slate-900 block">Confirmation Voucher:</strong>
-                  You will receive a confirmation message on WhatsApp or Email with pickup details and driver contact.
+                  <strong className="text-slate-900 block">{t('booking.successTitle')}</strong>
+                  <span>{t('confirmation.alertDesc')}</span>
                 </div>
               </div>
 
@@ -347,23 +421,35 @@ Please confirm driver dispatch and booking details!`;
                   3
                 </div>
                 <div>
-                  <strong className="text-slate-900 block">Pay on Arrival:</strong>
-                  No card charges online. Pay directly upon meeting your guide (Cash in USD/EUR/GBP/TZS or M-Pesa).
+                  <strong className="text-slate-900 block">{t('hero.statPayment')}</strong>
+                  <span>{t('booking.fullPaymentNotice')}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Instant WhatsApp Confirmation Button */}
-          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
+          {/* Confirmation Actions */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-2xl mx-auto">
+            <Link
+              href={`/book/confirmation/${referenceCode}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-extrabold text-sm shadow-xl shadow-sky-600/25 hover:scale-105 active:scale-95 transition-all text-center"
+            >
+              <FileText className="w-5 h-5" />
+              <span>{t('booking.viewConfirmation')} →</span>
+            </Link>
+
             <a
-              href={getWhatsAppLink(compiledWhatsAppText)}
+              href={getLocalizedWhatsAppLink('confirmation', {
+                reference: referenceCode,
+                service: bookingType === 'tour' ? currentTour.title : `${pickupLocation} to ${dropoffLocation}`,
+                date: bookingType === 'tour' ? tourDate : transportDate,
+              })}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-black text-sm shadow-xl shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all text-center"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-black text-sm shadow-xl shadow-emerald-500/25 hover:scale-105 active:scale-95 transition-all text-center"
             >
               <MessageCircle className="w-5 h-5 fill-current" />
-              <span>Confirm Instantly on WhatsApp</span>
+              <span>{t('booking.chatWhatsAppNow')}</span>
             </a>
 
             <button
@@ -371,7 +457,7 @@ Please confirm driver dispatch and booking details!`;
               onClick={() => setIsSubmitted(false)}
               className="w-full sm:w-auto px-5 py-3 rounded-full text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200"
             >
-              Submit Another Request
+              {t('booking.returnHome')}
             </button>
           </div>
         </div>
@@ -388,33 +474,59 @@ Please confirm driver dispatch and booking details!`;
               <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
                 <button
                   type="button"
-                  onClick={() => setBookingType('tour')}
-                  className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
-                    bookingType === 'tour'
+                  onClick={() => {
+                    setBookingType('tour');
+                    router.replace('/book?type=tour', { scroll: false });
+                  }}
+                  className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${bookingType === 'tour'
                       ? 'bg-white text-sky-700 shadow-md'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Compass className="w-4 h-4" />
-                  <span>Tour / Excursion</span>
+                  <span>{t('booking.tabTours')}</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setBookingType('transport')}
-                  className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${
-                    bookingType === 'transport'
+                  onClick={() => {
+                    setBookingType('transport');
+                    router.replace('/book?type=transport', { scroll: false });
+                  }}
+                  className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${bookingType === 'transport'
                       ? 'bg-white text-sky-700 shadow-md'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                 >
                   <Car className="w-4 h-4" />
-                  <span>Airport & Transfer</span>
+                  <span>{t('booking.tabTransfers')}</span>
                 </button>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+              {/* Anti-spam honeypot field (hidden from genuine users) */}
+              <div style={{ display: 'none' }} aria-hidden="true">
+                <input
+                  type="text"
+                  name="b_hp_email"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </div>
+
+              {/* API Error Alert */}
+              {apiError && (
+                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-start gap-3 text-rose-800 text-xs sm:text-sm">
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block font-bold">Submission Error</strong>
+                    <span>{apiError}</span>
+                  </div>
+                </div>
+              )}
               {/* Tour Specific Fields */}
               {bookingType === 'tour' && (
                 <div className="space-y-5 pt-2 border-t border-slate-100">
@@ -453,9 +565,8 @@ Please confirm driver dispatch and booking details!`;
                         required
                         value={tourDate}
                         onChange={(e) => setTourDate(e.target.value)}
-                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                          errors.tourDate ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.tourDate ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                          }`}
                       />
                       {errors.tourDate && (
                         <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -548,9 +659,8 @@ Please confirm driver dispatch and booking details!`;
                       value={hotelLocation}
                       onChange={(e) => setHotelLocation(e.target.value)}
                       placeholder="e.g. Zuri Zanzibar Kendwa, Park Hyatt Stone Town, or Paje Beach Resort"
-                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        errors.hotelLocation ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                      }`}
+                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.hotelLocation ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                        }`}
                     />
                     {errors.hotelLocation && (
                       <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -601,9 +711,8 @@ Please confirm driver dispatch and booking details!`;
                         value={pickupLocation}
                         onChange={(e) => setPickupLocation(e.target.value)}
                         placeholder="e.g. Zanzibar Airport (ZNZ) or Hotel Name"
-                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                          errors.pickupLocation ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.pickupLocation ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                          }`}
                       />
                       {errors.pickupLocation && (
                         <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -627,9 +736,8 @@ Please confirm driver dispatch and booking details!`;
                         value={dropoffLocation}
                         onChange={(e) => setDropoffLocation(e.target.value)}
                         placeholder="e.g. Nungwi Resort or Stone Town Ferry"
-                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                          errors.dropoffLocation ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.dropoffLocation ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                          }`}
                       />
                       {errors.dropoffLocation && (
                         <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -654,9 +762,8 @@ Please confirm driver dispatch and booking details!`;
                         required
                         value={transportDate}
                         onChange={(e) => setTransportDate(e.target.value)}
-                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                          errors.transportDate ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.transportDate ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                          }`}
                       />
                       {errors.transportDate && (
                         <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -753,9 +860,8 @@ Please confirm driver dispatch and booking details!`;
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="e.g. Sarah Jenkins"
-                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        errors.fullName ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                      }`}
+                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.fullName ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                        }`}
                     />
                     {errors.fullName && (
                       <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -798,9 +904,8 @@ Please confirm driver dispatch and booking details!`;
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="e.g. sarah@example.com"
-                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        errors.email ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                      }`}
+                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.email ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                        }`}
                     />
                     {errors.email && (
                       <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -824,9 +929,8 @@ Please confirm driver dispatch and booking details!`;
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="e.g. +44 7123 456789"
-                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-                        errors.phone ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
-                      }`}
+                      className={`w-full px-4 py-3 rounded-2xl bg-slate-50 border text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${errors.phone ? 'border-red-400 bg-red-50/40' : 'border-slate-200'
+                        }`}
                     />
                     {errors.phone && (
                       <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
@@ -855,28 +959,68 @@ Please confirm driver dispatch and booking details!`;
                 </div>
               </div>
 
+              {/* GDPR Consent Checkbox */}
+              <div className="pt-2">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    id="gdpr-consent"
+                    checked={gdprConsent}
+                    onChange={(e) => setGdprConsent(e.target.checked)}
+                    className="mt-1 w-4 h-4 rounded text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer"
+                  />
+                  <span className="text-xs text-slate-600 leading-relaxed select-none">
+                    I agree to the processing of my contact and booking details by Ibrahim Tours Zanzibar in accordance with the{' '}
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      className="text-sky-600 font-semibold underline hover:text-sky-700"
+                    >
+                      Privacy Policy
+                    </Link>
+                    . (Required)
+                  </span>
+                </label>
+                {errors.gdprConsent && (
+                  <span className="text-[11px] text-red-500 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" />
+                    {errors.gdprConsent}
+                  </span>
+                )}
+              </div>
+
               {/* Submit Buttons */}
               <div className="pt-4 flex flex-col sm:flex-row gap-3.5">
                 <button
                   type="submit"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-extrabold text-sm shadow-lg shadow-sky-600/25 active:scale-95 transition-all text-center"
+                  disabled={isSubmitting}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-extrabold text-sm shadow-lg shadow-sky-600/25 active:scale-95 transition-all text-center disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <CalendarCheck className="w-5 h-5" />
-                  <span>Submit Booking Request</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>{t('booking.submitting')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CalendarCheck className="w-5 h-5" />
+                      <span>{bookingType === 'tour' ? t('booking.submitTour') : t('booking.submitTransfer')}</span>
+                    </>
+                  )}
                 </button>
 
                 <a
-                  href={getWhatsAppLink(
-                    `Hello Ibrahim! I would like to book ${
-                      bookingType === 'tour' ? currentTour.title : `${pickupLocation} to ${dropoffLocation}`
-                    }. Can you check availability?`
-                  )}
+                  href={getLocalizedWhatsAppLink(bookingType === 'tour' ? 'tour' : 'transfer', {
+                    title: currentTour.title,
+                    origin: pickupLocation,
+                    destination: dropoffLocation,
+                  })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-extrabold text-sm shadow-lg shadow-emerald-500/25 active:scale-95 transition-all text-center"
                 >
                   <MessageCircle className="w-5 h-5 fill-current" />
-                  <span>Inquire on WhatsApp</span>
+                  <span>{t('footer.chatWhatsApp')}</span>
                 </a>
               </div>
             </form>
@@ -903,20 +1047,20 @@ Please confirm driver dispatch and booking details!`;
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-baseline justify-between">
                 <div>
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Estimated Rate
+                    {t('booking.estimatedPrice')}
                   </span>
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-black text-slate-900">
                       {formatPrice(estimatedPrice)}
                     </span>
                     <span className="text-xs text-slate-500 font-medium">
-                      {bookingType === 'tour' ? 'total estimate' : 'total per vehicle'}
+                      {bookingType === 'tour' ? 'USD' : 'USD'}
                     </span>
                   </div>
                 </div>
 
                 <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-                  Pay on Arrival
+                  {t('featuredTours.securePayment')}
                 </span>
               </div>
 

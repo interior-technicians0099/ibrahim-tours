@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {
@@ -9,14 +11,14 @@ import {
   ShieldCheck,
   Award,
   Globe2,
-  CalendarCheck,
-  ChevronRight,
   Heart,
 } from 'lucide-react';
 import { OPERATOR, FEATURED_PACKAGES } from '@/lib/constants';
-import { getWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function Footer() {
+  const { t, getLocalizedWhatsAppLink } = useLanguage();
+
   return (
     <footer className="bg-slate-950 text-white pt-16 pb-28 md:pb-12 border-t border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,13 +44,13 @@ export default function Footer() {
             </Link>
 
             <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-              Your premier licensed local tour operator in Zanzibar. Offering private, authentic island excursions, marine adventures, cultural walks, and reliable airport transfers with zero upfront prepayment.
+              {t('footer.tagline')}
             </p>
 
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-xs font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Licensed Operator</span>
+                <span>{t('footer.licensedBadge')}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/60 border border-sky-800/50 text-sky-400 text-xs font-semibold">
                 <Award className="w-3.5 h-3.5 text-amber-400" />
@@ -60,7 +62,7 @@ export default function Footer() {
           {/* Column 2: Quick Links (2 cols) */}
           <div className="lg:col-span-2 space-y-4">
             <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-              Explore
+              {t('footer.exploreTitle')}
             </h3>
             <ul className="space-y-2.5 text-xs sm:text-sm">
               <li>
@@ -68,7 +70,7 @@ export default function Footer() {
                   href="/"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Home
+                  {t('footer.home')}
                 </Link>
               </li>
               <li>
@@ -76,7 +78,7 @@ export default function Footer() {
                   href="/about"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Meet Ibrahim
+                  {t('footer.meetIbrahim')}
                 </Link>
               </li>
               <li>
@@ -84,7 +86,7 @@ export default function Footer() {
                   href="/tours"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Tours & Excursions
+                  {t('footer.tours')}
                 </Link>
               </li>
               <li>
@@ -92,7 +94,7 @@ export default function Footer() {
                   href="/transportation"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Airport Transfers
+                  {t('footer.transfers')}
                 </Link>
               </li>
               <li>
@@ -100,7 +102,7 @@ export default function Footer() {
                   href="/reviews"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Guest Reviews
+                  {t('footer.reviews')}
                 </Link>
               </li>
               <li>
@@ -108,7 +110,7 @@ export default function Footer() {
                   href="/faq"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  FAQs
+                  {t('footer.faqs')}
                 </Link>
               </li>
               <li>
@@ -116,7 +118,7 @@ export default function Footer() {
                   href="/contact"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  Contact
+                  {t('footer.contact')}
                 </Link>
               </li>
               <li>
@@ -124,7 +126,7 @@ export default function Footer() {
                   href="/book"
                   className="text-amber-400 hover:text-amber-300 font-bold transition-colors"
                 >
-                  Request Booking →
+                  {t('footer.requestBooking')}
                 </Link>
               </li>
             </ul>
@@ -133,7 +135,7 @@ export default function Footer() {
           {/* Column 3: Featured Tours (3 cols) */}
           <div className="lg:col-span-3 space-y-4">
             <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-              Top Experiences
+              {t('footer.experiencesTitle')}
             </h3>
             <ul className="space-y-2.5 text-xs sm:text-sm">
               {FEATURED_PACKAGES.slice(0, 5).map((tour) => (
@@ -155,7 +157,7 @@ export default function Footer() {
           {/* Column 4: Contact & Direct Dispatch (3 cols) */}
           <div className="lg:col-span-3 space-y-4">
             <h3 className="text-xs font-extrabold text-amber-400 uppercase tracking-wider">
-              Direct Contact
+              {t('footer.contactTitle')}
             </h3>
             <ul className="space-y-3 text-xs sm:text-sm text-slate-300">
               <li className="flex items-start gap-2.5">
@@ -185,19 +187,19 @@ export default function Footer() {
 
               <li className="flex items-center gap-2.5 text-slate-400 text-xs">
                 <Globe2 className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>English, Swahili, Italian</span>
+                <span>{t('footer.languagesSpoken')}</span>
               </li>
             </ul>
 
             <div className="pt-2">
               <a
-                href={getWhatsAppLink()}
+                href={getLocalizedWhatsAppLink('default')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-extrabold text-xs shadow-md transition-all active:scale-95 text-center"
               >
                 <MessageCircle className="w-4 h-4 fill-current" />
-                <span>Chat on WhatsApp</span>
+                <span>{t('footer.chatWhatsApp')}</span>
               </a>
             </div>
           </div>
@@ -206,13 +208,12 @@ export default function Footer() {
         {/* Bottom Copyright & Guarantee */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 text-center sm:text-left">
           <p>
-            &copy; {new Date().getFullYear()} {OPERATOR.businessName}. All rights reserved.
+            &copy; {new Date().getFullYear()} {OPERATOR.businessName}. {t('footer.allRightsReserved')}
           </p>
 
           <p className="flex items-center gap-1 text-slate-400">
-            <span>Made with</span>
+            <span>{t('footer.madeWithLove')}</span>
             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-            <span>in Zanzibar, Tanzania</span>
           </p>
         </div>
       </div>

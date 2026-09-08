@@ -1,4 +1,5 @@
 import { OPERATOR } from './constants';
+import { Locale, DEFAULT_LOCALE, getDictionary } from './i18n';
 
 /**
  * Formats a number as a USD price string (e.g. $160).
@@ -22,15 +23,19 @@ export function getWhatsAppLink(message?: string): string {
 /**
  * Generates a prefilled WhatsApp link for inquiring or booking a specific tour.
  */
-export function getTourWhatsAppLink(tourTitle: string): string {
-  const message = `Hello Ibrahim! I am interested in booking the "${tourTitle}" tour with Ibrahim Tours Zanzibar. Could you please let me know availability and details?`;
+export function getTourWhatsAppLink(tourTitle: string, locale: Locale = DEFAULT_LOCALE): string {
+  const dict = getDictionary(locale);
+  const message = dict.whatsapp.tourInquiry.replace('{title}', tourTitle);
   return getWhatsAppLink(message);
 }
 
 /**
  * Generates a prefilled WhatsApp link for inquiring or booking a transfer between two locations.
  */
-export function getTransferWhatsAppLink(origin: string, destination: string): string {
-  const message = `Hello Ibrahim! I would like to book a private transfer from ${origin} to ${destination}. Could you please confirm availability and vehicle options?`;
+export function getTransferWhatsAppLink(origin: string, destination: string, locale: Locale = DEFAULT_LOCALE): string {
+  const dict = getDictionary(locale);
+  const message = dict.whatsapp.transferInquiry
+    .replace('{origin}', origin)
+    .replace('{destination}', destination);
   return getWhatsAppLink(message);
 }

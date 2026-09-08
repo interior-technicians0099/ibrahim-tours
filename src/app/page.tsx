@@ -7,8 +7,14 @@ import TransportPreview from '@/components/home/TransportPreview';
 import ReviewsPreview from '@/components/home/ReviewsPreview';
 import WhyChooseOperator from '@/components/home/WhyChooseOperator';
 import FinalCTA from '@/components/home/FinalCTA';
+import { getPublicTours } from '@/lib/tours-db';
 
-export default function HomePage() {
+export const dynamic = 'force-dynamic';
+
+export default async function HomePage() {
+  const allTours = await getPublicTours();
+  const featured = allTours.filter((t) => t.featured).slice(0, 8);
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* 1. Full-Width Tropical Hero */}
@@ -18,7 +24,7 @@ export default function HomePage() {
       <TrustIntro />
 
       {/* 3. Grid of 8 Featured Packages with Dual CTAs */}
-      <FeaturedTours />
+      <FeaturedTours tours={featured} />
 
       {/* 4. Tour Categories Explorer */}
       <TourCategories />

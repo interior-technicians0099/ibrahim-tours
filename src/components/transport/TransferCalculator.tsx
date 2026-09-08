@@ -173,7 +173,7 @@ export default function TransferCalculator() {
           <div className="space-y-2 text-center md:text-left">
             <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4" />
-              <span>Private AC Vehicle • Pay on Arrival</span>
+              <span>Private AC Vehicle • Secure Payment via M-Pesa / Bank</span>
             </div>
 
             <div className="text-lg sm:text-xl font-bold text-white flex flex-wrap items-center justify-center md:justify-start gap-2">

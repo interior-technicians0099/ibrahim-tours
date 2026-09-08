@@ -1,0 +1,458 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --------------------------------------------------------
+// ENUMS
+// --------------------------------------------------------
+
+enum Role {
+  PLATFORM_ADMIN
+  OPERATOR
+}
+
+enum ServiceType {
+  TOUR
+  TRANSPORT
+}
+
+enum BookingStatus {
+  REQUESTED
+  UNDER_REVIEW
+  AWAITING_PAYMENT
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  REJECTED
+  PENDING
+}
+
+enum PaymentStatus {
+  NOT_PAID
+  PENDING
+  PARTIALLY_PAID
+  PAID_IN_FULL
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CASH_USD
+  CASH_EUR
+  CASH_GBP
+  CASH_TZS
+  MPESA
+  BANK_TRANSFER
+  BANK
+  CARD
+  OTHER
+}
+
+enum ReviewType {
+  VERIFIED
+  IMPORTED
+  TESTIMONIAL
+}
+
+enum SettlementStatus {
+  PENDING
+  SETTLED
+  PAID
+}
+
+enum CommissionStatus {
+  CALCULATED
+  PENDING_RATE
+  MISSING_COST
+  RATE_APPLIED_LATE
+}
+
+enum NotificationRecipient {
+  PLATFORM_ADMIN
+  TOURIST
+  OPERATOR
+}
+
+enum NotificationChannel {
+  EMAIL
+  WHATSAPP
+}
+
+// --------------------------------------------------------
+// USER & OPERATOR MODELS
+// --------------------------------------------------------
+
+model AdminUser {
+  id               String           @id @default(cuid())
+  email            String           @unique
+  passwordHash     String
+  name             String
+  role             Role
+  operatorId       String?
+  operator         OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  isActive         Boolean          @default(true)
+  mustChangePassword Boolean        @default(true)
+  lastLogin        DateTime?
+  
+  auditLogs        AuditLog[]
+  bookingsRecorded Booking[]        @relation("BookingsRecorded")
+  paymentsRecorded Payment[]        @relation("PaymentsRecorded")
+
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+model OperatorProfile {
+  id                  String              @id @default(cuid())
+  name                String
+  businessName        String
+  tagline             String
+  biography           String              @db.Text
+  shortBio            String?             @db.Text
+  profilePhotoUrl     String?
+  yearsExperience     Int                 @default(10)
+  languages           String[]
+  phone               String
+  whatsapp            String
+  email               String
+  socials             Json?               // { facebook?: string, instagram?: string, ... }
+  paymentInstructions String              @db.Text // Confidential: instructions for tourists
+  paymentNotes        String?             @db.Text
+  mpesaNumber         String?
+  bankName            String?
+  bankAccount         String?
+  traLicenseNumber    String?
+  traLicenseExpiry    DateTime?
+  traLicenseUrl       String?
+  commissionRate      Decimal?            @db.Decimal(5, 4) // Override rate (e.g. 0.1500 = 15%, null inherits from Settings)
+  
+  users               AdminUser[]
+  tours               Tour[]
+  transportServices   TransportService[]
+  vehicles            Vehicle[]
+  bookings            Booking[]
+  monthlySettlements  MonthlySettlement[]
+  mediaAssets         MediaAsset[]
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+}
+
+// --------------------------------------------------------
+// CATALOG MODELS (TOURS & TRANSPORTS)
+// --------------------------------------------------------
+
+model TourCategory {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?  @db.Text
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+
+  tours       Tour[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Tour {
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  title              String
+  shortDescription   String?          @db.Text
+  description        String           @db.Text
+  categoryId         String
+  category           TourCategory     @relation(fields: [categoryId], references: [id])
+  operatorId         String?
+  operator           OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  
+  durationText       String           // e.g., "Full Day", "Half Day"
+  startingPriceCents Int              // In cents (e.g., 10500 = $105.00)
+  currency           String           @default("USD")
+  
+  pricingTiers       Json             // Tier pricing breakdown with private cost and profit
+  highlights         Json             // string[]
+  inclusions         Json             // string[]
+  exclusions         Json?            // string[]
+  availabilityNotes  String?          @db.Text
+  isFeatured         Boolean          @default(false)
+  isActive           Boolean          @default(true)
+  seoTitle           String?
+  seoDescription     String?          @db.Text
+
+  images             TourImage[]
+  bookings           Booking[]
+  reviews            Review[]
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model TourImage {
+  id        String   @id @default(cuid())
+  tourId    String
+  tour      Tour     @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  publicId  String?
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  isHero    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model TransportService {
+  id          String           @id @default(cuid())
+  slug        String           @unique
+  title       String
+  description String?          @db.Text
+  serviceType String           @default("AIRPORT_TRANSFER")
+  operatorId  String?
+  operator    OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  isActive    Boolean          @default(true)
+  isFeatured  Boolean          @default(false)
+
+  routes      Route[]
+  bookings    Booking[]
+  reviews     Review[]
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Route {
+  id                 String           @id @default(cuid())
+  transportServiceId String
+  transportService   TransportService @relation(fields: [transportServiceId], references: [id], onDelete: Cascade)
+  origin             String
+  destination        String
+  durationText       String
+  distanceText       String?
+  pricingTiers       Json             // { van1to3, van4to6, miniBus7to12, bigBus13to25 } in cents
+  isActive           Boolean          @default(true)
+
+  bookings           Booking[]
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+}
+
+model Vehicle {
+  id             String           @id @default(cuid())
+  name           String
+  vehicleType    String           // "Van", "MiniBus", "BigBus"
+  capacity       String           // "1–6 passengers"
+  hasAc          Boolean          @default(true)
+  driverIncluded Boolean          @default(true)
+  imageUrl       String?
+  features       Json?            // string[]
+  operatorId     String?
+  operator       OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  isActive       Boolean          @default(true)
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+// --------------------------------------------------------
+// BOOKING & REVENUE OPERATIONS
+// --------------------------------------------------------
+
+model Booking {
+  id                    String           @id @default(cuid())
+  referenceCode         String           @unique
+  serviceType           ServiceType
+  tourId                String?
+  tour                  Tour?            @relation(fields: [tourId], references: [id])
+  transportServiceId    String?
+  transportService      TransportService? @relation(fields: [transportServiceId], references: [id])
+  routeId               String?
+  route                 Route?           @relation(fields: [routeId], references: [id])
+  operatorId            String?
+  operator              OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+
+  tier                  String?          // "single", "couple", "van1to3", etc.
+  customerName          String
+  customerEmail         String
+  customerPhone         String
+  customerCountry       String?
+  bookingDate           DateTime
+  bookingTime           String?
+  numAdults             Int              @default(1)
+  numChildren           Int              @default(0)
+  pickupLocation        String?
+  dropoffLocation       String?
+  specialRequests       String?          @db.Text
+  locale                String           @default("en")
+
+  status                BookingStatus    @default(REQUESTED)
+  paymentStatus         PaymentStatus    @default(NOT_PAID)
+  amountPaidCents       Int?             @default(0)
+  totalPriceCents       Int?             // Gross price in cents
+  quotedPriceCents      Int?             // Snapshot quoted price in cents
+  paymentMethod         PaymentMethod?
+  paymentDate           DateTime?
+  paymentReference      String?
+  recordedById          String?
+  recordedBy            AdminUser?       @relation("BookingsRecorded", fields: [recordedById], references: [id])
+
+  // Confidential Economics (Private to Admin/Operator)
+  costCents             Int?             // Private operator cost
+  profitCents           Int?             // Private gross profit (totalPriceCents - costCents)
+  commissionRate        Decimal?         @db.Decimal(5, 4) // Effective platform commission rate
+  commissionAmountCents Int?             // Commission due (profitCents * commissionRate)
+  commissionStatus      CommissionStatus? // CALCULATED | PENDING_RATE | MISSING_COST | RATE_APPLIED_LATE
+  costOverrideNotes     String?          @db.Text
+  operatorNotes         String?          @db.Text
+
+  confirmedAt           DateTime?
+  cancelledAt           DateTime?
+  cancellationReason    String?          @db.Text
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  payments              Payment[]
+  notifications         Notification[]
+  reviews               Review[]
+}
+
+// --------------------------------------------------------
+// PAYMENT TRANSACTION LEDGER
+// --------------------------------------------------------
+
+model Payment {
+  id               String        @id @default(cuid())
+  bookingId        String
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  amountPaidCents  Int
+  paymentMethod    PaymentMethod
+  paymentDate      DateTime      @default(now())
+  paymentReference String?
+  notes            String?       @db.Text
+  recordedById     String?
+  recordedBy       AdminUser?    @relation("PaymentsRecorded", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  createdAt        DateTime      @default(now())
+}
+
+// --------------------------------------------------------
+// REVIEWS & FEEDBACK
+// --------------------------------------------------------
+
+model Review {
+  id                 String            @id @default(cuid())
+  type               ReviewType        @default(VERIFIED)
+  reviewerName       String
+  reviewerCountry    String?
+  rating             Int?              // 1 to 5
+  title              String?
+  body               String            @db.Text
+  tourId             String?
+  tour               Tour?             @relation(fields: [tourId], references: [id])
+  transportServiceId String?
+  transportService   TransportService? @relation(fields: [transportServiceId], references: [id])
+  bookingId          String?
+  booking            Booking?          @relation(fields: [bookingId], references: [id])
+  source             String?           // "TripAdvisor", "Google", "Direct", etc.
+  sourceUrl          String?
+  isPublished        Boolean           @default(true)
+  isFeatured         Boolean           @default(false)
+  adminResponse      String?           @db.Text
+
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+// --------------------------------------------------------
+// FINANCIAL SETTLEMENTS & AUDIT LOGGING
+// --------------------------------------------------------
+
+model MonthlySettlement {
+  id                 String           @id @default(cuid())
+  operatorId         String
+  operator           OperatorProfile  @relation(fields: [operatorId], references: [id])
+  month              String           // "YYYY-MM"
+  totalBookings      Int              @default(0)
+  totalRevenueCents  BigInt           @default(0)
+  totalProfitCents   BigInt           @default(0)
+  commissionRate     Decimal          @db.Decimal(5, 4)
+  commissionDueCents BigInt           @default(0)
+  status             SettlementStatus @default(PENDING)
+  settledAt          DateTime?
+  notes              String?          @db.Text
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@unique([operatorId, month])
+}
+
+model Notification {
+  id        String                @id @default(cuid())
+  bookingId String?
+  booking   Booking?              @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  recipient NotificationRecipient
+  channel   NotificationChannel
+  type      String                // "BOOKING_REQUEST", "BOOKING_CONFIRMED", etc.
+  payload   Json?
+  sentAt    DateTime?
+  createdAt DateTime              @default(now())
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  userId     String?
+  user       AdminUser? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String     // e.g. "RECORD_PAYMENT", "CONFIRM_BOOKING"
+  entityType String     // e.g. "Booking", "Tour", "MonthlySettlement"
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime   @default(now())
+}
+
+model Settings {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String   @db.Text
+  category  String?
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MediaAsset {
+  id          String           @id @default(cuid())
+  operatorId  String?
+  operator    OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  publicId    String           @unique
+  url         String
+  secureUrl   String?
+  width       Int?
+  height      Int?
+  format      String?
+  bytes       Int?
+  alt         String?
+  entityType  String?          // "TOUR", "VEHICLE", "OPERATOR_PROFILE", "TRA_LICENSE"
+  entityId    String?
+  isHero      Boolean          @default(false)
+  sortOrder   Int              @default(0)
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
