@@ -35,7 +35,7 @@ export async function generateMetadata({
 
   return {
     title: `${routeTitle} Private Transfer | ${OPERATOR.businessName}`,
-    description: `Book direct private transfer from ${route.origin} to ${route.destination} (${route.distanceKm} km, ${route.durationEstimate}). Clean AC van & bus options with zero advance payment.`,
+    description: `Book direct private transfer from ${route.origin} to ${route.destination} (${route.distanceKm} km, ${route.durationEstimate}). Clean AC van & bus options with fixed transparent tiered pricing.`,
     keywords: [
       routeTitle,
       'Zanzibar Airport Transfer',
@@ -61,5 +61,30 @@ export default async function TransferDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  return <TransferDetail route={route} />;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: `${route.origin} to ${route.destination} Private Transfer`,
+    description: `Private Zanzibar transfer between ${route.origin} and ${route.destination}`,
+    provider: {
+      '@type': 'TravelAgency',
+      name: OPERATOR.businessName,
+      telephone: OPERATOR.phone,
+      email: OPERATOR.email,
+    },
+    areaServed: {
+      '@type': 'AdministrativeArea',
+      name: 'Zanzibar, Tanzania',
+    },
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <TransferDetail route={route} />
+    </>
+  );
 }
