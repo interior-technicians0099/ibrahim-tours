@@ -53,8 +53,7 @@ export async function GET() {
         checks: {
           database: {
             status: 'down',
-            hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
-            error: err.message,
+            error: !process.env.DATABASE_URL ? 'DATABASE_URL environment variable is missing' : 'Database connection error',
           },
         },
         durationMs: totalDurationMs,
