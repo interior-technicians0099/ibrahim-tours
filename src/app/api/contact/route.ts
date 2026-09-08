@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. IP Rate limiting
     const ip =
+      request.headers.get('x-client-ip') ||
       request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
       request.headers.get('x-real-ip') ||
       '127.0.0.1';

@@ -10,8 +10,10 @@ import { ServiceType, BookingStatus, PaymentStatus } from '@prisma/client';
 export async function POST(request: NextRequest) {
   try {
     // 1. Resolve client IP
-    const forwardedFor = request.headers.get('x-forwarded-for');
-    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
+    const clientIp =
+      request.headers.get('x-client-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      '127.0.0.1';
 
     // 2. IP Rate Limiting (10 per hour)
     const rateCheck = checkBookingRateLimit(clientIp);
