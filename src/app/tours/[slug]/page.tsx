@@ -71,7 +71,7 @@ export default async function TourDetailPage({ params }: PageProps) {
     touristType: ['Travelers', 'Couples', 'Families'],
     offers: {
       '@type': 'Offer',
-      price: (tour.startingPriceCents ? tour.startingPriceCents / 100 : (tour.pricing?.single || 120)).toString(),
+      price: (tour.pricing?.single || 120).toString(),
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
       validFrom: '2026-01-01',
