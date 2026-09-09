@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { CalendarCheck, MessageCircle, Phone } from 'lucide-react';
+import { CalendarCheck, MessageCircle, Mail } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
@@ -48,14 +48,14 @@ export default function MobileStickyBar() {
           <span>{t('mobileBar.whatsApp')}</span>
         </a>
 
-        {/* 3. Call Guide Direct */}
+        {/* 3. Email Us Direct */}
         <a
-          href={`tel:${OPERATOR.phone.replace(/\s+/g, '')}`}
+          href={`mailto:${OPERATOR.email}?subject=${encodeURIComponent('Inquiry: Zanzibar Tour & Transfer')}`}
           className="flex flex-col items-center justify-center min-h-[44px] py-1.5 px-2 rounded-2xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-extrabold text-[11px] shadow-sm active:scale-95 transition-all text-center"
-          aria-label={`Call Ibrahim directly at ${OPERATOR.phone}`}
+          aria-label={`Email Ibrahim Tours at ${OPERATOR.email}`}
         >
-          <Phone className="w-4 h-4 text-sky-400 mb-0.5" />
-          <span>{t('mobileBar.callGuide') || 'Call Guide'}</span>
+          <Mail className="w-4 h-4 text-sky-400 mb-0.5" />
+          <span>{t('mobileBar.emailUs') || 'Email Us'}</span>
         </a>
       </div>
     </aside>

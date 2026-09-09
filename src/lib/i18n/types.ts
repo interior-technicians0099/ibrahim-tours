@@ -217,7 +217,8 @@ export interface Dictionary {
   mobileBar: {
     bookNow: string;
     whatsApp: string;
-    callGuide: string;
+    callGuide?: string;
+    emailUs: string;
   };
   whatsapp: {
     defaultGreeting: string;
