@@ -7,9 +7,13 @@ const { auth } = NextAuth(authConfig);
 export default auth(async function middleware(request) {
   const { pathname, search } = request.nextUrl;
 
+  const rawHost = request.headers.get("x-forwarded-host") || request.headers.get("host") || "localhost:3000";
+  const host = rawHost.includes("0.0.0.0") ? "10.254.75.221:3000" : rawHost;
+  const isHttps = request.headers.get("x-forwarded-proto") === "https" || request.url.startsWith("https");
+  const baseUrl = `${isHttps ? "https" : "http"}://${host}`;
+
   // 0. Enforce HTTPS in production
   const proto = request.headers.get("x-forwarded-proto");
-  const host = request.headers.get("host");
   if (process.env.NODE_ENV === "production" && proto === "http" && host) {
     return NextResponse.redirect(`https://${host}${pathname}${search}`, 301);
   }
@@ -30,7 +34,7 @@ export default auth(async function middleware(request) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/login", baseUrl);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -43,25 +47,26 @@ export default auth(async function middleware(request) {
     // If user has a temporary password, force them to /change-password
     if (mustChange) {
       if (!isChangePasswordPage && !pathname.startsWith("/api")) {
-        return NextResponse.redirect(new URL("/change-password", request.url));
+        return NextResponse.redirect(new URL("/change-password", baseUrl));
       }
       return NextResponse.next();
     }
 
     // If user does NOT need to change password, prevent access to /change-password & /login
     if (isLoginPage || isChangePasswordPage) {
-      if (user.role === "PLATFORM_ADMIN") {
-        return NextResponse.redirect(new URL("/platform", request.url));
-      }
-      return NextResponse.redirect(new URL("/operator", request.url));
+      const target = user.role === "PLATFORM_ADMIN" ? "/platform" : "/operator/tours";
+      return NextResponse.redirect(new URL(target, baseUrl));
     }
 
-    // Handle generic /admin/** alias
+    // Handle generic /admin/** alias → route based on role
     if (isAdminRoute) {
-      if (user.role === "PLATFORM_ADMIN") {
-        return NextResponse.redirect(new URL("/platform", request.url));
-      }
-      return NextResponse.redirect(new URL("/operator", request.url));
+      const target = user.role === "PLATFORM_ADMIN" ? "/platform" : "/operator";
+      return NextResponse.redirect(new URL(target, baseUrl));
+    }
+
+    // PLATFORM_ADMIN landing on /operator → redirect to /platform
+    if ((pathname === "/operator" || pathname === "/operator/") && user.role === "PLATFORM_ADMIN") {
+      return NextResponse.redirect(new URL("/platform", baseUrl));
     }
 
     // Platform routes: strictly PLATFORM_ADMIN only
@@ -69,16 +74,18 @@ export default auth(async function middleware(request) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden: Platform Admin access required" }, { status: 403 });
       }
-      // OPERATOR is forbidden from accessing /platform/** -> redirect to /operator
-      return NextResponse.redirect(new URL("/operator", request.url));
+      // OPERATOR is forbidden from accessing /platform/** -> redirect to /operator/tours?from=platform
+      const targetUrl = new URL("/operator/tours", baseUrl);
+      targetUrl.searchParams.set("from", "platform");
+      return NextResponse.redirect(targetUrl);
     }
 
-    // Operator routes: accessible by OPERATOR and PLATFORM_ADMIN (superadmin override)
-    if (isOperatorRoute && user.role !== "OPERATOR" && user.role !== "PLATFORM_ADMIN") {
+    // Operator routes: accessible by OPERATOR, COMPANY_ADMIN, and PLATFORM_ADMIN (superadmin override)
+    if (isOperatorRoute && user.role !== "OPERATOR" && user.role !== "COMPANY_ADMIN" && user.role !== "PLATFORM_ADMIN") {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Forbidden: Operator access required" }, { status: 403 });
+        return NextResponse.json({ error: "Forbidden: Operator or Company Admin access required" }, { status: 403 });
       }
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/login", baseUrl));
     }
   }
 

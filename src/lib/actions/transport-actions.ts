@@ -23,9 +23,9 @@ export async function saveRouteAction(data: {
   };
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
-  const effectiveOperatorId = scopedOperatorId || (await prisma.operatorProfile.findFirst())?.id || 'operator-ibrahim';
+  const effectiveOperatorId = scopedOperatorId || (await prisma.companyProfile.findFirst())?.id || 'operator-ibrahim';
 
   // Ensure default transport service exists
   let transportService: any = await prisma.transportService.findFirst({
@@ -99,7 +99,7 @@ export async function saveRouteAction(data: {
 }
 
 export async function deleteRouteAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
 
   const route = await prisma.route.delete({ where: { id } });
 
@@ -130,9 +130,9 @@ export async function saveVehicleAction(data: {
   features?: string[];
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
-  const effectiveOperatorId = scopedOperatorId || (await prisma.operatorProfile.findFirst())?.id || 'operator-ibrahim';
+  const effectiveOperatorId = scopedOperatorId || (await prisma.companyProfile.findFirst())?.id || 'operator-ibrahim';
 
   let vehicle: any;
   if (data.id) {
@@ -192,7 +192,7 @@ export async function saveVehicleAction(data: {
 }
 
 export async function deleteVehicleAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
 
   const vehicle = await prisma.vehicle.delete({ where: { id } });
 

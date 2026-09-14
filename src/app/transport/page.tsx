@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
+import { getCompanyProfile } from '@/lib/company';
 import TransferCalculator from '@/components/transport/TransferCalculator';
 import RouteList from '@/components/transport/RouteList';
 import VehicleFleet from '@/components/transport/VehicleFleet';
@@ -21,12 +22,14 @@ import AirportMeetGreet from '@/components/transport/AirportMeetGreet';
 export const metadata: Metadata = {
   title: 'Zanzibar Private Airport Transfers & Taxi Fares | Complete Price Guide',
   description:
-    'Book reliable private air-conditioned airport transfers in Zanzibar with Ibrahim. Fixed rates between Zanzibar Airport (ZNZ), Stone Town, Nungwi, Kendwa, Paje, and Jambiani. No advance online payment required.',
+    'Book reliable private air-conditioned airport transfers in Zanzibar with Zansafari Horizon. Fixed rates between Zanzibar Airport (ZNZ), Stone Town, Nungwi, Kendwa, Paje, and Jambiani. Verified booking and professional drivers.',
 };
 
-export default function TransportPage() {
+export default async function TransportPage() {
+  const company = await getCompanyProfile();
+  const brandWhatsapp = company?.officialWhatsapp || company?.whatsapp;
   const customTransferMsg =
-    'Hello Ibrahim! I need a private transfer in Zanzibar for my group. Can you share availability?';
+    'Hello Zansafari Horizon! I need a private transfer in Zanzibar for my group. Can you share availability?';
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -105,12 +108,12 @@ export default function TransportPage() {
               Rent a private car & driver for the whole day
             </h2>
             <p className="text-slate-300 text-xs sm:text-sm">
-              Whether you need multiple beach stops, restaurant wait-and-return service, or business transport in Stone Town, Ibrahim provides flexible hourly or full-day chauffeur hire.
+              Whether you need multiple beach stops, restaurant wait-and-return service, or business transport in Stone Town, Zansafari Horizon provides flexible hourly or full-day chauffeur hire.
             </p>
           </div>
 
           <a
-            href={getWhatsAppLink(customTransferMsg)}
+            href={getWhatsAppLink(customTransferMsg, brandWhatsapp)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all shrink-0 hover:scale-105 active:scale-95"

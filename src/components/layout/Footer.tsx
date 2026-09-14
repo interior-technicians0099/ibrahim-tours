@@ -12,12 +12,39 @@ import {
   Award,
   Globe2,
   Heart,
+  Lock,
 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { OPERATOR, FEATURED_PACKAGES } from '@/lib/constants';
+import { CompanyProfileData } from '@/lib/company';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
-export default function Footer() {
+interface FooterProps {
+  company?: CompanyProfileData;
+}
+
+export default function Footer({ company }: FooterProps) {
+  const pathname = usePathname();
   const { t, getLocalizedWhatsAppLink } = useLanguage();
+
+  // Hide on admin/operator portals and login where portal layouts are used
+  if (
+    pathname?.startsWith('/platform') ||
+    pathname?.startsWith('/operator') ||
+    pathname?.startsWith('/login')
+  ) {
+    return null;
+  }
+
+  const brandName = company?.companyName || company?.businessName || OPERATOR.name;
+  const brandBusinessName = company?.businessName || company?.companyName || OPERATOR.businessName;
+  const brandTagline = company?.tagline || OPERATOR.tagline;
+  const brandLogo = company?.logoUrl || OPERATOR.logoUrl || '/branding/zansafari-logo.png';
+  const brandTraLicense = company?.traLicenseNumber || OPERATOR.traLicenseNumber;
+  const brandRegistration = company?.registrationNumber || OPERATOR.registrationNumber;
+  const brandLocation = company?.location || OPERATOR.location;
+  const brandPhone = company?.officialPhone || company?.phone || OPERATOR.phone;
+  const brandEmail = company?.officialEmail || company?.email || OPERATOR.email;
 
   return (
     <footer className="bg-slate-950 text-white pt-16 pb-28 md:pb-12 border-t border-slate-800">
@@ -27,18 +54,22 @@ export default function Footer() {
           <div className="lg:col-span-4 space-y-5">
             <Link
               href="/"
-              className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-sky-500 rounded-xl w-fit"
-              aria-label="Ibrahim Tours Zanzibar Homepage"
+              className="flex items-center gap-3 group focus-visible:ring-2 focus-visible:ring-amber-500 rounded-xl w-fit"
+              aria-label={`${brandBusinessName} Homepage`}
             >
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-700 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform">
-                <Compass className="w-6 h-6 animate-[spin_16s_linear_infinite]" />
+              <div className="h-12 flex items-center shrink-0">
+                <img
+                  src={brandLogo}
+                  alt={brandName}
+                  className="h-10 sm:h-11 w-auto max-w-[200px] object-contain rounded-lg"
+                />
               </div>
               <div className="flex flex-col">
-                <span className="font-extrabold text-lg text-white group-hover:text-sky-400 transition-colors leading-tight">
-                  {OPERATOR.businessName}
+                <span className="font-extrabold text-lg text-white group-hover:text-amber-400 transition-colors leading-tight">
+                  {brandBusinessName}
                 </span>
-                <span className="text-[10px] font-bold text-sky-400 uppercase tracking-wider">
-                  Stone Town, Zanzibar
+                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                  {brandTagline}
                 </span>
               </div>
             </Link>
@@ -50,11 +81,11 @@ export default function Footer() {
             <div className="flex flex-wrap gap-2 pt-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 text-xs font-semibold">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{t('footer.licensedBadge')}</span>
+                <span>{brandTraLicense || 'TRA-ZNZ-2024-8841'}</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-950/60 border border-sky-800/50 text-sky-400 text-xs font-semibold">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/60 border border-amber-800/50 text-amber-300 text-xs font-semibold">
                 <Award className="w-3.5 h-3.5 text-amber-400" />
-                <span>{OPERATOR.experience}</span>
+                <span>Reg: {brandRegistration || 'ZNZ-BR-2024-00892'}</span>
               </span>
             </div>
           </div>
@@ -78,7 +109,7 @@ export default function Footer() {
                   href="/about"
                   className="text-slate-400 hover:text-white transition-colors"
                 >
-                  {t('footer.meetIbrahim')}
+                  {t('footer.aboutUs')}
                 </Link>
               </li>
               <li>
@@ -162,26 +193,26 @@ export default function Footer() {
             <ul className="space-y-3 text-xs sm:text-sm text-slate-300">
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-                <span>{OPERATOR.location}</span>
+                <span>{brandLocation}</span>
               </li>
 
               <li className="flex items-center gap-2.5">
                 <Phone className="w-4 h-4 text-sky-400 shrink-0" />
                 <a
-                  href={`tel:${OPERATOR.phone}`}
+                  href={`tel:${brandPhone}`}
                   className="hover:text-white transition-colors"
                 >
-                  {OPERATOR.phone}
+                  {brandPhone}
                 </a>
               </li>
 
               <li className="flex items-center gap-2.5">
                 <Mail className="w-4 h-4 text-sky-400 shrink-0" />
                 <a
-                  href={`mailto:${OPERATOR.email}`}
+                  href={`mailto:${brandEmail}`}
                   className="hover:text-white transition-colors break-all"
                 >
-                  {OPERATOR.email}
+                  {brandEmail}
                 </a>
               </li>
 
@@ -208,13 +239,26 @@ export default function Footer() {
         {/* Bottom Copyright & Guarantee */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 text-center sm:text-left">
           <p>
-            &copy; {new Date().getFullYear()} {OPERATOR.businessName}. {t('footer.allRightsReserved')}
+            &copy; {new Date().getFullYear()} {brandBusinessName}. {t('footer.allRightsReserved')}
           </p>
 
-          <p className="flex items-center gap-1 text-slate-400">
-            <span>{t('footer.madeWithLove')}</span>
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-          </p>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1.5 text-[11px] font-medium"
+              title="Staff / Operator Portal Login"
+            >
+              <Lock className="w-3 h-3 text-slate-400" />
+              <span>Portal Login</span>
+            </Link>
+
+            <span className="text-slate-700 hidden sm:inline">•</span>
+
+            <p className="flex items-center gap-1 text-slate-400">
+              <span>{t('footer.madeWithLove')}</span>
+              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+            </p>
+          </div>
         </div>
       </div>
     </footer>

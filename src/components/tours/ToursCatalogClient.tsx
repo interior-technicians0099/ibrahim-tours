@@ -25,7 +25,8 @@ interface Props {
 }
 
 export default function ToursCatalogClient({ initialTours }: Props) {
-  const { t } = useLanguage();
+  const { t, company } = useLanguage();
+  const brandWhatsapp = company?.officialWhatsapp || company?.whatsapp;
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
 
   // Filter tours based on active category chip
@@ -195,13 +196,14 @@ export default function ToursCatalogClient({ initialTours }: Props) {
               Design your personalized Zanzibar itinerary
             </h2>
             <p className="text-slate-300 text-xs sm:text-sm">
-              Combine multiple sights into a single private day (e.g. Jozani Monkeys + Spice Farm + Sunset Dhow). Message Ibrahim directly on WhatsApp for custom pacing and pricing.
+              Combine multiple sights into a single private day (e.g. Jozani Monkeys + Spice Farm + Sunset Dhow). Message our team directly on WhatsApp for custom pacing and pricing.
             </p>
           </div>
 
           <a
             href={getWhatsAppLink(
-              'Hello Ibrahim! I would like to design a customized multi-tour package in Zanzibar.'
+              'Hello Zansafari Horizon! I would like to design a customized multi-tour package in Zanzibar.',
+              brandWhatsapp
             )}
             target="_blank"
             rel="noopener noreferrer"

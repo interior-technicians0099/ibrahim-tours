@@ -390,7 +390,7 @@ export default function OperatorDashboardClient({
               </span>
             </div>
             <p className="text-xs text-slate-400 hidden sm:block">
-              Ibrahim Tours Zanzibar • Bookings, Cash/M-Pesa Ledger & Verification
+              Zansafari Horizon • Bookings, Cash/M-Pesa Ledger & Verification
             </p>
           </div>
         </div>
@@ -454,6 +454,13 @@ export default function OperatorDashboardClient({
           >
             <HelpCircle className="w-3.5 h-3.5" />
             <span>FAQs</span>
+          </Link>
+          <Link
+            href="/operator/branding"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span>Branding & Logo</span>
           </Link>
           <Link
             href="/operator/profile"
@@ -611,7 +618,7 @@ export default function OperatorDashboardClient({
 
               const cleanPhone = b.customerPhone.replace(/[^0-9]/g, '');
               const whatsAppText = encodeURIComponent(
-                `Jambo ${b.customerName}! This is Ibrahim from Ibrahim Tours Zanzibar regarding your booking request ${b.referenceCode} for ${b.serviceTitle} on ${b.bookingDate}.`
+                `Jambo ${b.customerName}! This is the operations desk at Zansafari Horizon regarding your booking request ${b.referenceCode} for ${b.serviceTitle} on ${b.bookingDate}.`
               );
               const whatsAppUrl = `https://wa.me/${cleanPhone}?text=${whatsAppText}`;
 
@@ -1117,7 +1124,7 @@ export default function OperatorDashboardClient({
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
                   rows={2}
-                  placeholder="e.g. Handed to Ibrahim in person at hotel lobby..."
+                  placeholder="e.g. Received via company M-Pesa / Bank transfer or handed to guide..."
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>

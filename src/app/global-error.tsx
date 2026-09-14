@@ -28,7 +28,7 @@ export default function GlobalError({
 
           <div className="space-y-2">
             <span className="text-xs font-bold text-sky-400 uppercase tracking-wider">
-              Ibrahim Tours Zanzibar
+              Zansafari Horizon
             </span>
             <h1 className="text-2xl font-black tracking-tight text-white">
               Something Went Wrong
@@ -54,7 +54,7 @@ export default function GlobalError({
             </button>
 
             <a
-              href={getWhatsAppLink('Hello Ibrahim! I encountered an error on the website while browsing. Could you assist me?')}
+              href={getWhatsAppLink('Hello Zansafari Horizon! I encountered an error on the website while browsing. Could you assist me?')}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs shadow-lg transition-all active:scale-95"

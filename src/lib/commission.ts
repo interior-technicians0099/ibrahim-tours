@@ -105,7 +105,7 @@ export async function resolveEffectiveCommissionRate(
 ): Promise<number | null> {
   if (operatorId) {
     try {
-      const operator = await prisma.operatorProfile.findUnique({
+      const operator = await prisma.companyProfile.findUnique({
         where: { id: operatorId },
         select: { commissionRate: true },
       });

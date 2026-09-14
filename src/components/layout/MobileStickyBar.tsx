@@ -5,11 +5,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { CalendarCheck, MessageCircle, Mail } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
+import { CompanyProfileData } from '@/lib/company';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
-export default function MobileStickyBar() {
+interface MobileStickyBarProps {
+  company?: CompanyProfileData;
+}
+
+export default function MobileStickyBar({ company }: MobileStickyBarProps) {
   const pathname = usePathname();
   const { t, getLocalizedWhatsAppLink } = useLanguage();
+
+  const brandBusinessName = company?.businessName || company?.companyName || OPERATOR.businessName;
+  const brandEmail = company?.officialEmail || company?.email || OPERATOR.email;
 
   // Hide on admin/operator portals and on the book page itself where the user is already booking
   if (
@@ -50,9 +58,9 @@ export default function MobileStickyBar() {
 
         {/* 3. Email Us Direct */}
         <a
-          href={`mailto:${OPERATOR.email}?subject=${encodeURIComponent('Inquiry: Zanzibar Tour & Transfer')}`}
+          href={`mailto:${brandEmail}?subject=${encodeURIComponent('Inquiry: Zanzibar Tour & Transfer')}`}
           className="flex flex-col items-center justify-center min-h-[44px] py-1.5 px-2 rounded-2xl bg-slate-900 hover:bg-slate-800 active:bg-slate-950 text-white font-extrabold text-[11px] shadow-sm active:scale-95 transition-all text-center"
-          aria-label={`Email Ibrahim Tours at ${OPERATOR.email}`}
+          aria-label={`Email ${brandBusinessName} at ${brandEmail}`}
         >
           <Mail className="w-4 h-4 text-sky-400 mb-0.5" />
           <span>{t('mobileBar.emailUs') || 'Email Us'}</span>

@@ -46,7 +46,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${routeTitle} - Private Zanzibar Transfer`,
       description: `Fixed-rate private transport from ${route.origin} to ${route.destination}. Free flight tracking and meet & greet included.`,
-      url: `https://ibrahimtours.co.tz/transportation/${route.id}`,
+      url: `https://zansafarihorizon.com/transportation/${route.id}`,
       siteName: OPERATOR.businessName,
       type: 'article',
     },

@@ -8,15 +8,15 @@ import OperatorSettlementsClient, {
 } from '@/components/operator/OperatorSettlementsClient';
 
 export default async function OperatorSettlementsPage() {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
 
-  // Look up Operator profile
+  // Look up Company profile
   const operator = scopedOperatorId
-    ? await prisma.operatorProfile.findUnique({ where: { id: scopedOperatorId } })
-    : await prisma.operatorProfile.findFirst();
+    ? await prisma.companyProfile.findUnique({ where: { id: scopedOperatorId } })
+    : await prisma.companyProfile.findFirst();
 
-  const operatorName = operator?.businessName || operator?.name || user.name || 'Ibrahim Tours';
+  const operatorName = operator?.companyName || operator?.businessName || operator?.name || user.name || 'Zansafari Horizon';
   const effectiveOperatorId = operator?.id || 'operator-ibrahim';
 
   // 1. Fetch monthly settlements for this operator

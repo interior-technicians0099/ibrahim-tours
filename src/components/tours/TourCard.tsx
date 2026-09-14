@@ -44,7 +44,7 @@ function getCategoryIcon(category: TourCategory) {
 }
 
 export default function TourCard({ tour }: TourCardProps) {
-  const { t, locale } = useLanguage();
+  const { t, locale, getLocalizedWhatsAppLink } = useLanguage();
   const [imgError, setImgError] = React.useState(false);
 
   // Extract all valid images for the rotating gallery
@@ -263,7 +263,7 @@ export default function TourCard({ tour }: TourCardProps) {
           </Link>
 
           <a
-            href={getTourWhatsAppLink(tour.title, locale)}
+            href={getLocalizedWhatsAppLink('tour', { title: tour.title })}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-1.5 min-h-[44px] py-2 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-xs shadow-xs shadow-emerald-500/20 transition-colors text-center"

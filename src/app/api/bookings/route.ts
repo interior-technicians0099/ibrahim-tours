@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     if (!rateCheck.allowed) {
       return NextResponse.json(
         {
-          error: `Too many booking requests from this IP. Please try again in ${rateCheck.retryAfterMinutes} minutes, or contact Ibrahim directly on WhatsApp (+255 700 000 000).`,
+          error: `Too many booking requests from this IP. Please try again in ${rateCheck.retryAfterMinutes} minutes, or contact our team directly on WhatsApp (+255 618 769 150).`,
         },
         { status: 429 }
       );
@@ -49,19 +49,20 @@ export async function POST(request: NextRequest) {
 
     const data = parseResult.data;
 
-    // 5. Look up Operator Profile for payment instructions
+    // 5. Look up Company Profile for payment instructions
     const operator =
-      (await prisma.operatorProfile.findUnique({ where: { id: 'operator-ibrahim' } })) ||
-      (await prisma.operatorProfile.findFirst()) || {
+      (await prisma.companyProfile.findUnique({ where: { id: 'operator-ibrahim' } })) ||
+      (await prisma.companyProfile.findFirst()) || {
         id: 'operator-ibrahim',
-        name: 'Ibrahim',
+        name: 'Zansafari Horizon Operations',
+        companyName: 'Zansafari Horizon',
         paymentInstructions:
           'Your booking request has been reviewed and confirmed. To secure your reservation, please send the full payment to the M-Pesa number or Bank Account provided below. Your booking is confirmed only when full payment is received.',
         paymentNotes: 'Please include your booking reference in the transfer description.',
-        mpesaNumber: '+255 777 123 456',
+        mpesaNumber: '+255 618 769 150 (Zansafari Horizon)',
         bankName: 'CRDB Bank Zanzibar',
-        bankAccount: '0152849201900',
-        whatsapp: '+255 777 123 456',
+        bankAccount: '0150 0000 0000 0',
+        whatsapp: '+255 618 769 150',
       };
 
     // 6. Generate non-guessable alphanumeric reference code like ZNZ-2026-XXXXXX
@@ -192,6 +193,7 @@ export async function POST(request: NextRequest) {
         pickupLocation,
         dropoffLocation,
         specialRequests: data.specialRequests || null,
+        guideNotes: data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null,
         status: BookingStatus.REQUESTED,
         paymentStatus: PaymentStatus.NOT_PAID,
         amountPaidCents: 0,
@@ -220,6 +222,7 @@ export async function POST(request: NextRequest) {
           costCents: booking.costCents,
           tier: booking.tier,
           locale: booking.locale,
+          preferredLanguage: data.preferredLanguage || booking.locale,
         },
         ipAddress: clientIp,
       },
@@ -254,6 +257,7 @@ export async function POST(request: NextRequest) {
       bankAccount: operator.bankAccount,
       paymentNotes: operator.paymentNotes,
       locale: booking.locale,
+      preferredLanguage: data.preferredLanguage,
       operatorWhatsApp: (operator as any).whatsapp || undefined,
     };
 

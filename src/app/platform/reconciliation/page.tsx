@@ -87,7 +87,7 @@ export default async function PlatformReconciliationPage() {
         customerName: b.customerName,
         customerEmail: b.customerEmail,
         customerPhone: b.customerPhone,
-        operatorName: b.operator?.name || b.operator?.businessName || 'Ibrahim Tours',
+        operatorName: b.operator?.companyName || b.operator?.businessName || b.operator?.name || 'Zansafari Horizon',
         bookingDate: b.bookingDate.toISOString().slice(0, 10),
         status: b.status,
         paymentStatus: b.paymentStatus,

@@ -11,7 +11,7 @@ import { getDictionary } from '@/lib/i18n';
 import { Locale } from '@/lib/i18n/types';
 
 export const metadata: Metadata = {
-  title: 'Request a Booking | Ibrahim Tours Zanzibar (Secure Payment)',
+  title: 'Request a Booking | Zansafari Horizon (Secure Payment)',
   description:
     'Submit your booking request for private Zanzibar excursions, Safari Blue, Stone Town tours, and airport transfers. Verified direct confirmation with full payment via M-Pesa or Bank.',
 };

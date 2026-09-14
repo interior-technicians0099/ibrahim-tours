@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { ALL_TOURS, TRANSFER_ROUTES } from '@/lib/constants';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXTAUTH_URL || 'https://ibrahimtours.co.tz';
+  const baseUrl = process.env.NEXTAUTH_URL || 'https://zansafarihorizon.com';
   const currentDate = new Date();
 
   // Core public static pages

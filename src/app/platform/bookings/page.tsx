@@ -2,18 +2,22 @@ import React from 'react';
 import { requireRole } from '@/lib/auth-helpers';
 import { prisma } from '@/lib/prisma';
 import { Role } from '@prisma/client';
+import { getCompanyProfile } from '@/lib/company';
 import PlatformBookingsMasterClient, {
   MasterBookingItem,
 } from '@/components/platform/PlatformBookingsMasterClient';
 
 export default async function PlatformBookingsMasterPage() {
   const user = await requireRole(Role.PLATFORM_ADMIN);
+  const companyProfile = await getCompanyProfile();
 
   const rawBookings = await prisma.booking.findMany({
     include: {
       tour: true,
       route: true,
       operator: true,
+      receipt: true,
+      checkedInBy: { select: { name: true, email: true } },
       payments: {
         orderBy: { paymentDate: 'desc' },
         include: { recordedBy: { select: { name: true, email: true } } },
@@ -53,6 +57,7 @@ export default async function PlatformBookingsMasterPage() {
       customerEmail: b.customerEmail,
       customerPhone: b.customerPhone,
       customerCountry: b.customerCountry || null,
+      locale: b.locale || 'en',
       bookingDate: b.bookingDate.toISOString().slice(0, 10),
       rawBookingDate: b.bookingDate.toISOString(),
       bookingTime: b.bookingTime || null,
@@ -62,7 +67,7 @@ export default async function PlatformBookingsMasterPage() {
       dropoffLocation: b.dropoffLocation || null,
       specialRequests: b.specialRequests || null,
       operatorId: b.operatorId,
-      operatorName: b.operator?.name || b.operator?.businessName || 'Ibrahim Tours',
+      operatorName: b.operator?.companyName || b.operator?.businessName || b.operator?.name || 'Zansafari Horizon',
       status: b.status,
       paymentStatus: b.paymentStatus,
       amountPaidCents: b.amountPaidCents || 0,
@@ -76,6 +81,15 @@ export default async function PlatformBookingsMasterPage() {
       cancellationReason: b.cancellationReason || null,
       operatorNotes: b.operatorNotes || null,
       createdAt: b.createdAt.toISOString(),
+      guideName: b.guideName || null,
+      guidePhone: b.guidePhone || null,
+      guideNotes: b.guideNotes || null,
+      leadForwardedAt: b.leadForwardedAt ? b.leadForwardedAt.toISOString() : null,
+      workOrderSentAt: b.workOrderSentAt ? b.workOrderSentAt.toISOString() : null,
+      checkedInAt: b.checkedInAt ? b.checkedInAt.toISOString() : null,
+      checkedInByName: b.checkedInBy?.name || b.checkedInBy?.email || null,
+      receiptNumber: b.receipt?.receiptNumber || null,
+      verificationCode: b.receipt?.verificationCode || null,
       payments: b.payments.map((p) => ({
         id: p.id,
         amountPaidCents: p.amountPaidCents,
@@ -90,8 +104,8 @@ export default async function PlatformBookingsMasterPage() {
   });
 
   // Operators list for filter dropdown
-  const operators = await prisma.operatorProfile.findMany({
-    select: { id: true, name: true, businessName: true },
+  const operators = await prisma.companyProfile.findMany({
+    select: { id: true, name: true, businessName: true, companyName: true },
   });
 
   return (
@@ -99,10 +113,16 @@ export default async function PlatformBookingsMasterPage() {
       initialBookings={formattedBookings}
       adminName={user.name}
       adminEmail={user.email}
-      operators={operators.map((op) => ({
+      operators={operators.map((op: any) => ({
         id: op.id,
-        name: op.name || op.businessName,
+        name: op.companyName || op.businessName || op.name,
       }))}
+      leadGuide={{
+        leadGuideName: companyProfile.leadGuideName || 'Ibrahim',
+        leadGuidePhone: companyProfile.leadGuidePhone || '+255 618 769 150',
+        leadGuideWhatsApp: companyProfile.leadGuideWhatsApp || '+255 618 769 150',
+        leadGuideEmail: companyProfile.leadGuideEmail || 'info@zansafarihorizon.com',
+      }}
     />
   );
 }

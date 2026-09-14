@@ -17,7 +17,7 @@ interface TransferCardProps {
 }
 
 export default function TransferCard({ route, isPopular = false }: TransferCardProps) {
-  const { t, locale } = useLanguage();
+  const { t, getLocalizedWhatsAppLink } = useLanguage();
 
   return (
     <article
@@ -95,7 +95,7 @@ export default function TransferCard({ route, isPopular = false }: TransferCardP
         </Link>
 
         <a
-          href={getTransferWhatsAppLink(route.origin, route.destination, locale)}
+          href={getLocalizedWhatsAppLink('transfer', { origin: route.origin, destination: route.destination })}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-1.5 min-h-[44px] py-2 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-xs shadow-xs shadow-emerald-500/20 transition-colors text-center"

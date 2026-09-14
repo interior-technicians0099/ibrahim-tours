@@ -15,16 +15,19 @@ import {
 } from 'lucide-react';
 import { OPERATOR, REVIEWS } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
+import { getCompanyProfile } from '@/lib/company';
 
 export const metadata: Metadata = {
-  title: 'Guest Reviews & 5-Star Testimonials | Ibrahim Tours Zanzibar',
+  title: 'Guest Reviews & 5-Star Testimonials | Zansafari Horizon',
   description:
-    'Read verified 5-star traveler reviews for Ibrahim Tours Zanzibar. International travelers from the UK, Italy, Sweden, and around the world share their authentic private tour experiences.',
+    'Read verified 5-star traveler reviews for Zansafari Horizon. International travelers from the UK, Italy, Sweden, and around the world share their authentic private tour experiences.',
 };
 
-export default function ReviewsPage() {
+export default async function ReviewsPage() {
+  const company = await getCompanyProfile();
+  const brandWhatsapp = company?.officialWhatsapp || company?.whatsapp;
   const reviewInquiryMsg =
-    'Hello Ibrahim! I read the reviews from your guests on the website and would love to book a tour with you.';
+    'Hello Zansafari Horizon! I read the reviews from your guests on the website and would love to book a tour with you.';
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -57,7 +60,7 @@ export default function ReviewsPage() {
             </h1>
 
             <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-              Discover honest feedback from international couples, families, and solo adventurers who explored Zanzibar with private guide Ibrahim.
+              Discover honest feedback from international couples, families, and solo adventurers who explored Zanzibar with Zansafari Horizon.
             </p>
           </div>
         </div>
@@ -100,7 +103,7 @@ export default function ReviewsPage() {
             </Link>
 
             <a
-              href={getWhatsAppLink(reviewInquiryMsg)}
+              href={getWhatsAppLink(reviewInquiryMsg, brandWhatsapp)}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 text-center"

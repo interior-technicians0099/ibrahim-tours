@@ -30,7 +30,7 @@ export interface CloudinaryUploadResult {
  */
 export async function uploadBufferToCloudinary(
   buffer: Buffer,
-  folder: string = 'ibrahim_tours',
+  folder: string = 'zansafari_horizon',
   options: {
     publicId?: string;
     tags?: string[];

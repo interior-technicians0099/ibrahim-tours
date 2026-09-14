@@ -313,7 +313,7 @@ export default function PlatformDashboardClient({ adminName, adminEmail, data }:
             </div>
             <div>
               <h4 className="text-xs font-bold text-white">Operators & Trust</h4>
-              <p className="text-[11px] text-slate-400">Ibrahim profile & TRA license</p>
+              <p className="text-[11px] text-slate-400">Company profile & TRA license</p>
             </div>
           </Link>
         </div>

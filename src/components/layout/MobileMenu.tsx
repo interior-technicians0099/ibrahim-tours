@@ -13,6 +13,7 @@ import {
   Award,
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
+import { CompanyProfileData } from '@/lib/company';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import LanguageSelector from './LanguageSelector';
 
@@ -25,15 +26,22 @@ interface MobileMenuProps {
   isOpen: boolean;
   onClose: () => void;
   links?: NavLink[];
+  company?: CompanyProfileData;
 }
 
 export default function MobileMenu({
   isOpen,
   onClose,
   links,
+  company,
 }: MobileMenuProps) {
   const pathname = usePathname();
   const { t, getLocalizedWhatsAppLink } = useLanguage();
+
+  const brandName = company?.companyName || company?.businessName || OPERATOR.name;
+  const brandBusinessName = company?.businessName || company?.companyName || OPERATOR.businessName;
+  const brandLogo = company?.logoUrl || OPERATOR.logoUrl || '/branding/zansafari-logo.png';
+  const brandPhone = company?.officialPhone || company?.phone || OPERATOR.phone;
 
   const defaultLinks: NavLink[] = [
     { name: t('nav.home'), href: '/' },
@@ -47,34 +55,86 @@ export default function MobileMenu({
 
   const menuLinks = links || defaultLinks;
 
+  // Auto-close drawer ONLY when pathname actually changes
+  const prevPathname = React.useRef(pathname);
+  React.useEffect(() => {
+    if (prevPathname.current !== pathname) {
+      prevPathname.current = pathname;
+      onClose();
+    }
+  }, [pathname, onClose]);
+
+  // Lock body scroll when mobile menu is open
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isOpen]);
+
+  // Close on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Handle navigation smoothly without aborting router navigation
+  const handleNavClick = (href: string) => {
+    if (pathname === href) {
+      onClose();
+    } else {
+      setTimeout(() => {
+        onClose();
+      }, 250);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 lg:hidden bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 lg:hidden bg-slate-950/70 backdrop-blur-md transition-opacity duration-200 touch-manipulation"
       aria-modal="true"
       role="dialog"
     >
       {/* Backdrop tap to close */}
-      <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
+      <div
+        className="absolute inset-0 z-0 cursor-pointer"
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
       {/* Slide-in Drawer Panel with RTL mirror */}
-      <div className="absolute right-0 rtl:right-auto rtl:left-0 top-0 bottom-0 w-[85vw] max-w-sm bg-white shadow-2xl overflow-y-auto flex flex-col justify-between p-6 pt-4 animate-in slide-in-from-right rtl:slide-in-from-left duration-300">
+      <div className="relative z-10 w-[85vw] max-w-sm h-full ml-auto rtl:ml-0 rtl:mr-auto bg-white shadow-2xl overflow-y-auto flex flex-col justify-between p-6 pt-4 transition-transform duration-300">
         <div>
           {/* Header row with Brand & Close Button */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
             <div className="flex items-center gap-3">
-              <img
-                src="/images/ibrahim-profile.webp"
-                alt="Ibrahim"
-                className="w-10 h-10 rounded-full object-cover border border-slate-200"
-              />
+              <div className="h-10 flex items-center shrink-0">
+                <img
+                  src={brandLogo}
+                  alt={brandName}
+                  className="h-9 w-auto max-w-[150px] object-contain rounded-lg"
+                />
+              </div>
               <div>
                 <span className="font-extrabold text-sm text-slate-900 block leading-tight">
-                  {OPERATOR.businessName}
+                  {brandBusinessName}
                 </span>
-                <span className="text-[10px] text-sky-700 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                  <Award className="w-3 h-3" /> {t('common.licensedGuide')}
+                <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                  <Award className="w-3 h-3 text-amber-500" /> {t('common.licensedGuide')}
                 </span>
               </div>
             </div>
@@ -82,7 +142,7 @@ export default function MobileMenu({
             <button
               type="button"
               onClick={onClose}
-              className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all"
+              className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer touch-manipulation"
               aria-label="Close navigation menu"
             >
               <X className="w-5 h-5" />
@@ -99,11 +159,11 @@ export default function MobileMenu({
                 <Link
                   key={link.href}
                   href={link.href}
-                  onClick={onClose}
-                  className={`flex items-center justify-between min-h-[44px] px-4 py-3 rounded-2xl text-sm font-extrabold transition-colors ${
+                  onClick={() => handleNavClick(link.href)}
+                  className={`flex items-center justify-between min-h-[46px] px-4 py-3 rounded-2xl text-sm font-extrabold transition-colors cursor-pointer touch-manipulation ${
                     isActive
-                      ? 'bg-sky-50 text-sky-700 shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-50'
+                      ? 'bg-sky-50 text-sky-700 shadow-xs ring-1 ring-sky-200/60'
+                      : 'text-slate-700 hover:bg-slate-50 active:bg-slate-100'
                   }`}
                 >
                   <span>{link.name}</span>
@@ -128,8 +188,8 @@ export default function MobileMenu({
           {/* Big Request Booking Button */}
           <Link
             href="/book"
-            onClick={onClose}
-            className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 active:from-sky-700 active:to-blue-700 text-white font-extrabold text-sm shadow-md shadow-sky-600/25 active:scale-95 transition-all text-center"
+            onClick={() => handleNavClick('/book')}
+            className="w-full inline-flex items-center justify-center gap-2 min-h-[48px] px-6 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 active:from-sky-700 active:to-blue-700 text-white font-extrabold text-sm shadow-md shadow-sky-600/25 active:scale-95 transition-all text-center cursor-pointer touch-manipulation"
           >
             <CalendarCheck className="w-4 h-4" />
             <span>{t('nav.bookRequest')}</span>
@@ -148,11 +208,11 @@ export default function MobileMenu({
 
           {/* Operator Direct Phone */}
           <a
-            href={`tel:${OPERATOR.phone}`}
+            href={`tel:${brandPhone}`}
             className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors"
           >
             <Phone className="w-3.5 h-3.5 text-sky-600" />
-            <span>{t('finalCta.orCall')} {OPERATOR.phone}</span>
+            <span>{t('finalCta.orCall')} {brandPhone}</span>
           </a>
 
           {/* Trust strip */}

@@ -350,7 +350,7 @@ export default function ReviewManagerClient({ initialReviews, tours }: Props) {
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   required
-                  placeholder="Ibrahim was phenomenal! Punctual, knowledgeable, and made us feel like family..."
+                  placeholder="Our guide was phenomenal! Punctual, knowledgeable, and made us feel like family..."
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -358,7 +358,7 @@ export default function ReviewManagerClient({ initialReviews, tours }: Props) {
               <div className="sm:col-span-2">
                 <label className="block text-xs font-semibold text-emerald-400 mb-1 flex items-center gap-1">
                   <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Ibrahim&apos;s Host Response (Optional)</span>
+                  <span>Company Host Response (Optional)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -459,7 +459,7 @@ export default function ReviewManagerClient({ initialReviews, tours }: Props) {
 
                 {r.adminResponse && (
                   <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] space-y-1">
-                    <span className="font-bold text-emerald-400 block">Response from Ibrahim:</span>
+                    <span className="font-bold text-emerald-400 block">Response from Zansafari Horizon:</span>
                     <p className="text-slate-400">{r.adminResponse}</p>
                   </div>
                 )}

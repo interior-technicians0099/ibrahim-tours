@@ -13,15 +13,25 @@ import {
   ExternalLink,
   Edit,
   ImageIcon,
+  AlertTriangle,
+  User as UserIcon,
 } from 'lucide-react';
+import LogoutButton from '@/components/auth/LogoutButton';
 
-export default async function OperatorToursPage() {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+interface OperatorToursPageProps {
+  searchParams?: Promise<{ from?: string; unauthorized?: string }>;
+}
+
+export default async function OperatorToursPage({ searchParams }: OperatorToursPageProps) {
+  const resolvedParams = searchParams ? await searchParams : {};
+  const isFromPlatform = resolvedParams.from === 'platform' || resolvedParams.unauthorized === 'platform';
+
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
 
   // Fetch tours from database scoped to operator
   const dbTours = await prisma.tour.findMany({
-    where: user.role === Role.OPERATOR && scopedOperatorId ? { operatorId: scopedOperatorId } : {},
+    where: (user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) && scopedOperatorId ? { operatorId: scopedOperatorId } : {},
     include: {
       images: {
         orderBy: { sortOrder: 'asc' },
@@ -34,28 +44,69 @@ export default async function OperatorToursPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
       {/* Header */}
-      <header className="bg-slate-900/80 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
+      <header className="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Link
-            href="/operator"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+            href={user.role === 'PLATFORM_ADMIN' ? '/platform' : '/'}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-semibold"
+            title={user.role === 'PLATFORM_ADMIN' ? 'Rudi Platform Admin' : 'Rudi Tovuti Kuu (Home)'}
           >
             <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">{user.role === 'PLATFORM_ADMIN' ? 'Platform' : 'Tovuti Kuu'}</span>
           </Link>
           <div>
-            <h1 className="text-base sm:text-lg font-bold text-white">Manage Excursions & Tours</h1>
-            <p className="text-xs text-slate-400">Scoped to Ibrahim Tours catalog</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-base sm:text-lg font-bold text-white">Manage Excursions & Tours</h1>
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                {user.role}
+              </span>
+            </div>
+            <p className="text-xs text-slate-400">Scoped to Zansafari Horizon catalog</p>
           </div>
         </div>
 
-        <Link
-          href="/operator/tours/new"
-          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Tour</span>
-        </Link>
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Active user email */}
+          <div className="hidden md:flex flex-col text-right">
+            <span className="text-xs font-semibold text-slate-200">{user.email}</span>
+            <span className="text-[10px] text-slate-400">Umeingia sasa hivi</span>
+          </div>
+
+          <Link
+            href="/operator/tours/new"
+            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Tour</span>
+          </Link>
+
+          {/* Sign Out Button */}
+          <LogoutButton
+            showText
+            className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+          />
+        </div>
       </header>
+
+      {/* Alert Banner if redirected from /platform */}
+      {isFromPlatform && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6">
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3.5 text-amber-200 text-xs sm:text-sm">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1.5 flex-1">
+              <p className="font-bold text-amber-300 text-sm">
+                Taarifa ya Ufikiaji wa Platform Admin:
+              </p>
+              <p className="leading-relaxed">
+                Umeelekezwa hapa kwa sababu akaunti uliyoingia nayo sasa hivi (<strong>{user.email}</strong>) ina nafasi ya <strong>{user.role}</strong>. Ukurasa wa <code>/platform</code> umehifadhiwa kwa ajili ya <strong>PLATFORM_ADMIN</strong> pekee.
+              </p>
+              <p className="text-amber-300 font-medium">
+                👉 Ili kuingia kwenye <strong>Platform Admin</strong>, bonyeza kitufe cha <strong>Sign Out</strong> hapo juu kulia ili utoke, kisha ingia kwa kutumia akaunti ya Admin (<code>admin@zansafarihorizon.com</code>).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">

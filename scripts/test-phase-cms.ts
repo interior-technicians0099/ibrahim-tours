@@ -26,12 +26,12 @@ async function runPhaseCmsTests() {
     // TEST 1: Operator Profile & Confidential Payment / TRA Fields
     // ------------------------------------------------------------------------
     console.log('📋 [Test Group 1] Operator Profile & Confidential Payment Details');
-    let operator = await prisma.operatorProfile.findFirst({
+    let operator = await prisma.companyProfile.findFirst({
       where: { name: 'Ibrahim' },
     });
 
     if (!operator) {
-      operator = await prisma.operatorProfile.create({
+      operator = await prisma.companyProfile.create({
         data: {
           id: 'operator-ibrahim',
           name: 'Ibrahim',
@@ -50,7 +50,7 @@ async function runPhaseCmsTests() {
     assert(Boolean(operator), 'Operator Ibrahim profile exists in database');
 
     // Update with M-Pesa, Bank, and TRA License credentials
-    const updatedOperator = await prisma.operatorProfile.update({
+    const updatedOperator = await prisma.companyProfile.update({
       where: { id: operator.id },
       data: {
         mpesaNumber: '+255 777 889 900 (Ibrahim Tours)',

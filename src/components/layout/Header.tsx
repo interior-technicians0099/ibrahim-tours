@@ -14,15 +14,41 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
+import { CompanyProfileData } from '@/lib/company';
 import MobileMenu from './MobileMenu';
 import LanguageSelector from './LanguageSelector';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
-export default function Header() {
+interface HeaderProps {
+  company?: CompanyProfileData;
+}
+
+export default function Header({ company }: HeaderProps) {
   const pathname = usePathname();
   const { t, getLocalizedWhatsAppLink } = useLanguage();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Hide on admin/operator portals and login where portal headers are used
+  if (
+    pathname?.startsWith('/platform') ||
+    pathname?.startsWith('/operator') ||
+    pathname?.startsWith('/login')
+  ) {
+    return null;
+  }
+
+  const brandName = company?.companyName || company?.businessName || OPERATOR.name;
+  const brandTagline = company?.tagline || OPERATOR.tagline;
+  const brandLogo = company?.logoUrl || OPERATOR.logoUrl || '/branding/zansafari-logo.png';
 
   const navLinks = [
     { name: t('nav.home'), href: '/' },
@@ -33,14 +59,6 @@ export default function Header() {
     { name: t('nav.faq'), href: '/faq' },
     { name: t('nav.contact'), href: '/contact' },
   ];
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   return (
     <>
@@ -56,18 +74,22 @@ export default function Header() {
             {/* Logo & Brand Identity */}
             <Link
               href="/"
-              className="flex items-center gap-2.5 group focus-visible:ring-2 focus-visible:ring-sky-500 rounded-xl"
-              aria-label="Ibrahim Tours Zanzibar - Home"
+              className="flex items-center gap-2.5 min-w-0 flex-1 max-w-[calc(100%-105px)] lg:max-w-none group focus-visible:ring-2 focus-visible:ring-amber-500 rounded-xl"
+              aria-label={`${brandName} - Home`}
             >
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 via-sky-500 to-blue-700 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform duration-200">
-                <Compass className="w-6 h-6 animate-[spin_12s_linear_infinite]" />
+              <div className="h-9 sm:h-12 flex items-center justify-center shrink-0">
+                <img
+                  src={brandLogo}
+                  alt={brandName}
+                  className="h-8 sm:h-11 w-auto max-w-[110px] sm:max-w-[160px] object-contain rounded-lg"
+                />
               </div>
-              <div className="flex flex-col">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900 group-hover:text-sky-600 transition-colors leading-tight">
-                  {OPERATOR.name}
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-xs sm:text-base tracking-tight text-slate-900 group-hover:text-amber-600 transition-colors leading-tight truncate">
+                  {brandName}
                 </span>
-                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider">
-                  Zanzibar Tours & Transfers
+                <span className="text-[9px] sm:text-[10px] font-bold text-amber-700 uppercase tracking-wider truncate">
+                  {brandTagline}
                 </span>
               </div>
             </Link>
@@ -98,7 +120,7 @@ export default function Header() {
             </nav>
 
             {/* Desktop Action CTAs + Global Language Selector */}
-            <div className="hidden sm:flex items-center gap-2.5">
+            <div className="hidden lg:flex items-center gap-2.5">
               {/* Desktop Language Selector */}
               <LanguageSelector variant="desktop" />
 
@@ -107,8 +129,8 @@ export default function Header() {
                 href={getLocalizedWhatsAppLink('default')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-bold shadow-2xs transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500"
-                aria-label="Direct WhatsApp Chat with Ibrahim"
+                className="inline-flex items-center justify-center gap-1.5 h-10 px-3.5 rounded-full bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/80 text-xs font-bold shadow-2xs transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+                aria-label="Direct WhatsApp Chat with Zansafari Horizon"
               >
                 <MessageCircle className="w-4 h-4 text-emerald-600 fill-current" />
                 <span className="hidden md:inline">{t('nav.whatsAppUs')}</span>
@@ -117,7 +139,7 @@ export default function Header() {
               {/* Book Now Primary Button */}
               <Link
                 href="/book"
-                className="inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 active:from-sky-800 active:to-blue-800 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="inline-flex items-center justify-center gap-1.5 h-10 px-5 rounded-full bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 active:from-sky-800 active:to-blue-800 text-white text-xs font-bold shadow-md shadow-sky-600/20 transition-all hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer"
               >
                 <CalendarCheck className="w-4 h-4" />
                 <span>{t('nav.bookRequest')}</span>
@@ -125,12 +147,12 @@ export default function Header() {
             </div>
 
             {/* Mobile Actions: WhatsApp Icon + Hamburger Trigger */}
-            <div className="flex sm:hidden items-center gap-2">
+            <div className="flex lg:hidden items-center gap-2 shrink-0 z-30">
               <a
                 href={getLocalizedWhatsAppLink('default')}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs transition-transform active:scale-95"
+                className="w-11 h-11 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-xs transition-transform active:scale-95 touch-manipulation cursor-pointer shrink-0"
                 aria-label="Open WhatsApp Chat"
               >
                 <MessageCircle className="w-5 h-5 fill-current" />
@@ -138,15 +160,16 @@ export default function Header() {
 
               <button
                 type="button"
+                id="mobile-menu-trigger"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="w-10 h-10 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center hover:bg-slate-200 transition-colors focus-visible:ring-2 focus-visible:ring-sky-500"
+                className="w-11 h-11 rounded-full bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-800 flex items-center justify-center transition-colors focus-visible:ring-2 focus-visible:ring-sky-500 cursor-pointer touch-manipulation shrink-0 relative z-30"
                 aria-label={isMobileMenuOpen ? 'Close Menu' : 'Open Navigation Menu'}
                 aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 ) : (
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-6 h-6" />
                 )}
               </button>
             </div>
@@ -159,6 +182,7 @@ export default function Header() {
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         links={navLinks}
+        company={company}
       />
     </>
   );

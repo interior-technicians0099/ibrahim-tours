@@ -9,10 +9,11 @@ export function formatPrice(amount: number): string {
 }
 
 /**
- * Generates a direct WhatsApp link with an optional prefilled message.
+ * Generates a direct WhatsApp link with an optional prefilled message and dynamic phone.
  */
-export function getWhatsAppLink(message?: string): string {
-  const phone = OPERATOR.whatsapp.replace(/[^0-9]/g, '');
+export function getWhatsAppLink(message?: string, customPhone?: string): string {
+  const rawPhone = customPhone || OPERATOR.whatsapp;
+  const phone = rawPhone.replace(/[^0-9]/g, '');
   const base = `https://wa.me/${phone}`;
   if (!message) {
     return base;
@@ -23,19 +24,19 @@ export function getWhatsAppLink(message?: string): string {
 /**
  * Generates a prefilled WhatsApp link for inquiring or booking a specific tour.
  */
-export function getTourWhatsAppLink(tourTitle: string, locale: Locale = DEFAULT_LOCALE): string {
+export function getTourWhatsAppLink(tourTitle: string, locale: Locale = DEFAULT_LOCALE, customPhone?: string): string {
   const dict = getDictionary(locale);
   const message = dict.whatsapp.tourInquiry.replace('{title}', tourTitle);
-  return getWhatsAppLink(message);
+  return getWhatsAppLink(message, customPhone);
 }
 
 /**
  * Generates a prefilled WhatsApp link for inquiring or booking a transfer between two locations.
  */
-export function getTransferWhatsAppLink(origin: string, destination: string, locale: Locale = DEFAULT_LOCALE): string {
+export function getTransferWhatsAppLink(origin: string, destination: string, locale: Locale = DEFAULT_LOCALE, customPhone?: string): string {
   const dict = getDictionary(locale);
   const message = dict.whatsapp.transferInquiry
     .replace('{origin}', origin)
     .replace('{destination}', destination);
-  return getWhatsAppLink(message);
+  return getWhatsAppLink(message, customPhone);
 }

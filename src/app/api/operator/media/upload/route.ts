@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized: Authentication required.' }, { status: 401 });
     }
-    if (user.role !== Role.OPERATOR && user.role !== Role.PLATFORM_ADMIN) {
+    if (user.role !== Role.OPERATOR && user.role !== Role.PLATFORM_ADMIN && user.role !== Role.COMPANY_ADMIN) {
       return NextResponse.json({ error: 'Forbidden: Insufficient permissions.' }, { status: 403 });
     }
-    const scopedOperatorId = user.role === Role.OPERATOR ? user.operatorId : null;
+    const scopedOperatorId = (user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) ? user.operatorId : null;
 
     // 2. Upload Rate Limiting Check (~30 / hr)
     const rateLimitKey = user.id || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     // 5. Upload to Cloudinary securely (never write to local disk)
     const effectiveOperatorId = scopedOperatorId || 'operator-ibrahim';
-    const folder = `ibrahim_tours/${effectiveOperatorId}/${entityType.toLowerCase()}`;
+    const folder = `zansafari_horizon/${effectiveOperatorId}/${entityType.toLowerCase()}`;
 
     const uploadResult = await uploadBufferToCloudinary(buffer, folder, {
       tags: [entityType, effectiveOperatorId],

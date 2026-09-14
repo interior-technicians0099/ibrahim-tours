@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { HelpCircle, ChevronDown, ChevronUp, MessageCircle } from 'lucide-react';
 import { getWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 interface FaqItem {
   q: string;
@@ -12,7 +13,7 @@ interface FaqItem {
 const TOUR_SPECIFIC_FAQS: FaqItem[] = [
   {
     q: 'Are these tours private or shared with other groups?',
-    a: 'All excursions arranged by Ibrahim are 100% private for you and your travel companions. You will have your own private vehicle, dedicated licensed guide, and private boat charter without being rushed by large tourist crowds.',
+    a: 'All excursions arranged by Zansafari Horizon are 100% private for you and your travel companions. You will have your own private vehicle, dedicated licensed guide, and private boat charter without being rushed by large tourist crowds.',
   },
   {
     q: 'What is included in the stated tour prices?',
@@ -20,7 +21,7 @@ const TOUR_SPECIFIC_FAQS: FaqItem[] = [
   },
   {
     q: 'How do I pay if there is no online checkout?',
-    a: 'We never ask for credit card numbers online. You simply submit a booking request or message Ibrahim on WhatsApp to secure your dates. You pay in person on the day of the tour in US Dollars, Euros, British Pounds, Tanzanian Shillings, or via Vodacom M-Pesa.',
+    a: 'We never ask for credit card numbers online. You simply submit a booking request or message our team on WhatsApp to secure your dates. You pay in person on the day of the tour in US Dollars, Euros, British Pounds, Tanzanian Shillings, or via Vodacom M-Pesa.',
   },
   {
     q: 'What should I wear or pack for the excursions?',
@@ -28,12 +29,14 @@ const TOUR_SPECIFIC_FAQS: FaqItem[] = [
   },
   {
     q: 'Can I combine multiple tours or adjust the itinerary?',
-    a: 'Absolutely! Ibrahim specializes in custom tailored itineraries. You can combine Jozani Forest with The Rock Restaurant and Spice Tours in a single day. Message Ibrahim directly on WhatsApp to customize your dream day.',
+    a: 'Absolutely! Zansafari Horizon specializes in custom tailored itineraries. You can combine Jozani Forest with The Rock Restaurant and Spice Tours in a single day. Message our team directly on WhatsApp to customize your dream day.',
   },
 ];
 
 export default function TourFaq() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const { company } = useLanguage();
+  const brandWhatsapp = company?.officialWhatsapp || company?.whatsapp;
 
   const toggleFaq = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -96,14 +99,15 @@ export default function TourFaq() {
           </span>
           <a
             href={getWhatsAppLink(
-              'Hello Ibrahim! I have a question about booking tours in Zanzibar.'
+              'Hello Zansafari Horizon! I have a question about booking tours in Zanzibar.',
+              brandWhatsapp
             )}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-xs shadow-xs"
           >
             <MessageCircle className="w-3.5 h-3.5 fill-current" />
-            <span>Ask Ibrahim Directly</span>
+            <span>Chat With Our Team</span>
           </a>
         </div>
       </div>

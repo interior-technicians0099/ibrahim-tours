@@ -19,9 +19,9 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy & Data Protection | Ibrahim Tours Zanzibar',
+  title: 'Privacy Policy & Data Protection | Zansafari Horizon',
   description:
-    'Read our GDPR-compliant privacy policy. Learn how Ibrahim Tours Zanzibar collects, uses, protects, and honors right-to-erasure requests for tourist personal data.',
+    'Read our GDPR-compliant privacy policy. Learn how Zansafari Horizon collects, uses, protects, and honors right-to-erasure requests for tourist personal data.',
 };
 
 export default function PrivacyPolicyPage() {
@@ -57,7 +57,7 @@ export default function PrivacyPolicyPage() {
           </h1>
 
           <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-            Your privacy and trust are paramount. This policy outlines how Ibrahim Tours Zanzibar collects, processes, protects, and respects your rights over your personal data under the EU General Data Protection Regulation (GDPR) and the Tanzanian Personal Data Protection Act (2022).
+            Your privacy and trust are paramount. This policy outlines how Zansafari Horizon collects, processes, protects, and respects your rights over your personal data under the EU General Data Protection Regulation (GDPR) and the Tanzanian Personal Data Protection Act (2022).
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-slate-400">
@@ -107,11 +107,11 @@ export default function PrivacyPolicyPage() {
             The data controller responsible for the processing of your personal data is:
           </p>
           <div className="p-4 rounded-2xl bg-sky-50/60 border border-sky-100 text-xs sm:text-sm text-sky-950 font-medium space-y-1">
-            <p className="font-bold text-base text-sky-900">Ibrahim Tours Zanzibar</p>
+            <p className="font-bold text-base text-sky-900">Zansafari Horizon</p>
             <p>Stone Town, Zanzibar, United Republic of Tanzania</p>
-            <p>Registration / TRA License: ZCT-OP-2026-0841</p>
-            <p>Direct WhatsApp / Telephone: +255 777 000 000</p>
-            <p>Privacy & Data Protection Email: <span className="font-mono text-sky-700">privacy@ibrahimtours.co.tz</span></p>
+            <p>Company Registration: ZNZ-BR-2024-00892 • TRA License: TRA-ZNZ-2024-8841</p>
+            <p>Direct WhatsApp / Telephone: +255 618 769 150</p>
+            <p>Privacy & Data Protection Email: <span className="font-mono text-sky-700">privacy@zansafarihorizon.com</span></p>
           </div>
         </div>
 
@@ -210,7 +210,7 @@ export default function PrivacyPolicyPage() {
           <div className="p-4 rounded-2xl bg-slate-100 border border-slate-200 text-xs text-slate-600">
             <strong className="text-slate-900 block mb-1">How to Exercise Your Deletion Right:</strong>
             Send an email with your booking reference code (e.g. <span className="font-mono text-slate-900 font-semibold">ZNZ-2026-XXXXXX</span>) to{' '}
-            <span className="font-mono text-sky-700 font-bold">privacy@ibrahimtours.co.tz</span> or message Ibrahim directly on WhatsApp.
+            <span className="font-mono text-sky-700 font-bold">privacy@zansafarihorizon.com</span> or message our team directly on WhatsApp.
             Our platform administrators execute deletion within 48 business hours via our automated GDPR sanitization engine, recording an audited verification entry in our enterprise audit log.
           </div>
         </div>

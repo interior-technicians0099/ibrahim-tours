@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth-helpers';
 import { assertConfirmationAllowed } from '@/lib/services/booking-gate';
 import { sendBookingConfirmedNotifications } from '@/lib/services/email-service';
+import { issueBookingReceipt, generateReceiptQrDataUrl } from '@/lib/services/receipt-service';
+import { getCompanyProfile } from '@/lib/company';
 import { Role, BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import { formatPrice } from '@/lib/utils';
 import { recordPaymentSchema } from '@/lib/validations/payment';
@@ -12,7 +14,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+    const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
     const { id: bookingId } = await context.params;
 
     const body = await request.json();
@@ -48,7 +50,7 @@ export async function POST(
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
 
-    if (user.role === Role.OPERATOR && user.operatorId && booking.operatorId !== user.operatorId) {
+    if ((user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) && user.operatorId && booking.operatorId !== user.operatorId) {
       return NextResponse.json(
         { error: 'Forbidden: You do not have permission to record payments for this booking.' },
         { status: 403 }
@@ -149,9 +151,30 @@ export async function POST(
       },
     });
 
+    let issuedReceipt: any = null;
+
     // 6. Send CONFIRMED notifications if fully paid
     if (newPaymentStatus === PaymentStatus.PAID_IN_FULL) {
       const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      const companyProfile = await getCompanyProfile();
+
+      // Auto-issue official branded receipt
+      try {
+        issuedReceipt = await issueBookingReceipt({
+          bookingId: booking.id,
+          amountPaidCents: newTotalPaid,
+          paymentMethod,
+          paymentReference: paymentReference || booking.paymentReference,
+          issuedById: user.id,
+          notes: notes || operatorNotes || null,
+        });
+      } catch (receiptErr) {
+        console.error('[OperatorPaymentRoute] Failed to auto-issue receipt:', receiptErr);
+      }
+
+      const receiptUrl = issuedReceipt ? `${baseUrl}/receipt/${issuedReceipt.receiptNumber}` : undefined;
+      const qrDataUrl = receiptUrl ? await generateReceiptQrDataUrl(receiptUrl) : undefined;
+
       const serviceTitle =
         booking.serviceType === 'TOUR'
           ? booking.tour?.title || 'Tour'
@@ -174,10 +197,16 @@ export async function POST(
         pickupLocation: booking.pickupLocation || 'To be confirmed',
         amountPaidFormatted: formatPrice(Math.round(newTotalPaid / 100)),
         totalPriceFormatted: formatPrice(Math.round(targetPrice / 100)),
-        paymentMethod: paymentMethod.replace('_', ' '),
+        paymentMethod: paymentMethod.replace(/_/g, ' '),
         paymentReference: paymentReference || undefined,
         profitFormatted: profitCents ? formatPrice(Math.round(profitCents / 100)) : null,
-        operatorName: booking.operator?.name || 'Ibrahim',
+        operatorName: booking.operator?.companyName || booking.operator?.businessName || companyProfile.companyName || 'Zansafari Horizon',
+        receiptNumber: issuedReceipt?.receiptNumber,
+        verificationCode: issuedReceipt?.verificationCode,
+        receiptUrl,
+        qrDataUrl,
+        leadGuideName: companyProfile.leadGuideName,
+        leadGuidePhone: companyProfile.leadGuidePhone,
       };
 
       sendBookingConfirmedNotifications(confirmedDetails, baseUrl).catch((err) =>
@@ -191,6 +220,7 @@ export async function POST(
       success: true,
       booking: updatedBooking,
       payment,
+      receipt: issuedReceipt,
       autoConfirmed: newPaymentStatus === PaymentStatus.PAID_IN_FULL,
       remainingCents,
       remainingFormatted: formatPrice(Math.round(remainingCents / 100)),

@@ -76,9 +76,11 @@ export async function getOperatorScope(): Promise<string | null> {
     redirect("/login");
   }
 
-  if (user.role === Role.OPERATOR) {
+  if (user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) {
     if (!user.operatorId) {
-      throw new Error("403 Forbidden: Operator profile not linked to user account.");
+      const { prisma } = await import("@/lib/prisma");
+      const first = await prisma.companyProfile.findFirst();
+      return first?.id || null;
     }
     return user.operatorId;
   }

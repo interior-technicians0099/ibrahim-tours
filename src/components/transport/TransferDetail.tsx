@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {
@@ -22,6 +24,7 @@ import {
 import { TransferRoute } from '@/lib/types';
 import { TRANSFER_ROUTES, OPERATOR } from '@/lib/constants';
 import { formatPrice, getTransferWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import TransferCard from '@/components/transport/TransferCard';
 
 interface TransferDetailProps {
@@ -29,6 +32,8 @@ interface TransferDetailProps {
 }
 
 export default function TransferDetail({ route }: TransferDetailProps) {
+  const { getLocalizedWhatsAppLink, company } = useLanguage();
+  const brandPhone = company?.officialPhone || company?.phone || OPERATOR.phone;
   // 3 other routes
   const otherRoutes = TRANSFER_ROUTES.filter((r) => r.id !== route.id).slice(0, 3);
 
@@ -369,7 +374,7 @@ export default function TransferDetail({ route }: TransferDetailProps) {
                 </Link>
 
                 <a
-                  href={getTransferWhatsAppLink(route.origin, route.destination)}
+                  href={getLocalizedWhatsAppLink('transfer', { origin: route.origin, destination: route.destination })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-extrabold text-sm shadow-lg shadow-emerald-500/25 active:scale-95 transition-all text-center"
@@ -383,10 +388,10 @@ export default function TransferDetail({ route }: TransferDetailProps) {
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-center text-xs text-slate-500">
                 <span>Direct Dispatch: </span>
                 <a
-                  href={`tel:${OPERATOR.phone}`}
+                  href={`tel:${brandPhone}`}
                   className="font-bold text-slate-900 hover:text-sky-600"
                 >
-                  {OPERATOR.phone}
+                  {brandPhone}
                 </a>
               </div>
             </div>

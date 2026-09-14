@@ -1,14 +1,15 @@
 import { redirect } from "next/navigation";
 import { Role } from "@prisma/client";
 import { getCurrentUser, requireRole, getOperatorScope, AuthenticatedUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 
 export { getCurrentUser, requireRole, getOperatorScope };
 export type { AuthenticatedUser };
 
 /**
- * Scopes database queries to the operator's specific operatorId.
- * - If user is OPERATOR, strictly returns their operatorId.
- * - If user is PLATFORM_ADMIN, allows viewing a requested operator or returns null (all).
+ * Scopes database queries to the company/operator specific ID.
+ * - If user is OPERATOR or COMPANY_ADMIN, returns their operatorId (or active company profile).
+ * - If user is PLATFORM_ADMIN, allows viewing a requested operator or returns null (unrestricted).
  */
 export async function getScopedOperatorId(requestedOperatorId?: string): Promise<string | null> {
   const user = await getCurrentUser();
@@ -16,9 +17,10 @@ export async function getScopedOperatorId(requestedOperatorId?: string): Promise
     redirect("/login");
   }
 
-  if (user.role === Role.OPERATOR) {
+  if (user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) {
     if (!user.operatorId) {
-      throw new Error("Operator profile not linked to user account.");
+      const first = await prisma.companyProfile.findFirst();
+      return first?.id || null;
     }
     return user.operatorId;
   }

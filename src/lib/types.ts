@@ -77,6 +77,10 @@ export interface Operator {
   email: string;
   location: string;
   trustPoints: string[];
+  registrationNumber?: string;
+  traLicenseNumber?: string;
+  logoUrl?: string;
+  faviconUrl?: string;
 }
 
 export interface Review {

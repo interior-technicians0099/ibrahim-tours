@@ -28,6 +28,7 @@ import {
 import { Tour, TourCategory } from '@/lib/types';
 import { ALL_TOURS, OPERATOR } from '@/lib/constants';
 import { formatPrice, getTourWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 import PricingTable from '@/components/ui/PricingTable';
 import TourCard from '@/components/tours/TourCard';
 import TourPhotoLightbox, { LightboxImage } from '@/components/tours/TourPhotoLightbox';
@@ -56,6 +57,9 @@ function getCategoryIcon(category: TourCategory) {
 }
 
 export default function TourDetail({ tour }: TourDetailProps) {
+  const { getLocalizedWhatsAppLink, company } = useLanguage();
+  const brandPhone = company?.officialPhone || company?.phone || OPERATOR.phone;
+
   // Collect all valid photos
   const galleryImages: LightboxImage[] = useMemo(() => {
     if (tour.images && tour.images.length > 0) {
@@ -223,7 +227,7 @@ export default function TourDetail({ tour }: TourDetailProps) {
                       {getCategoryIcon(tour.category)}
                     </div>
                     <span className="text-sm font-bold text-slate-300 uppercase tracking-wider">
-                      Zanzibar Private Experience • Guided by Ibrahim
+                      Zanzibar Private Experience • Zansafari Horizon
                     </span>
                   </div>
                 </>
@@ -399,7 +403,7 @@ export default function TourDetail({ tour }: TourDetailProps) {
                     <span>Multilingual Guide</span>
                   </div>
                   <p className="text-slate-500 text-xs">
-                    Ibrahim speaks fluent English, Swahili, and Italian for clear guidance and storytelling.
+                    Our certified guides speak fluent English, Swahili, and Italian for clear guidance and storytelling.
                   </p>
                 </div>
               </div>
@@ -457,7 +461,7 @@ export default function TourDetail({ tour }: TourDetailProps) {
                 </Link>
 
                 <a
-                  href={getTourWhatsAppLink(tour.title)}
+                  href={getLocalizedWhatsAppLink('tour', { title: tour.title })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-extrabold text-sm shadow-lg shadow-emerald-500/25 active:scale-95 transition-all text-center"
@@ -469,12 +473,12 @@ export default function TourDetail({ tour }: TourDetailProps) {
 
               {/* Guide Quick Support */}
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-center text-xs text-slate-500">
-                <span>Questions? Call Ibrahim: </span>
+                <span>Questions? Call Operations: </span>
                 <a
-                  href={`tel:${OPERATOR.phone}`}
+                  href={`tel:${brandPhone}`}
                   className="font-bold text-slate-900 hover:text-sky-600"
                 >
-                  {OPERATOR.phone}
+                  {brandPhone}
                 </a>
               </div>
             </div>

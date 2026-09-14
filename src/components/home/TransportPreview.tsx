@@ -173,8 +173,17 @@ export default function TransportPreview() {
             {VEHICLES.map((v) => (
               <div
                 key={v.id}
-                className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-2 text-xs"
+                className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3 text-xs overflow-hidden group"
               >
+                {v.image && (
+                  <div className="w-full h-32 rounded-xl overflow-hidden relative bg-slate-950">
+                    <img
+                      src={v.image}
+                      alt={v.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sm text-white">{v.name}</span>
                   <span className="text-amber-400 font-semibold">{v.capacity}</span>

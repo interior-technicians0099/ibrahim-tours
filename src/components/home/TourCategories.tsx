@@ -76,7 +76,7 @@ export default function TourCategories() {
             Zanzibar Tour Categories
           </h2>
           <p className="text-slate-600 text-sm sm:text-base mt-2">
-            Whether you crave ocean adventures, wildlife encounters, or cultural immersion, Ibrahim has the perfect itinerary.
+            Whether you crave ocean adventures, wildlife encounters, or cultural immersion, Zansafari Horizon has the perfect itinerary.
           </p>
         </div>
 

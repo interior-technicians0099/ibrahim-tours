@@ -20,8 +20,8 @@ async function runTests() {
   console.log('   - Has PLATFORM_ADMIN:', !!platformAdmin, `(${platformAdmin?.email})`);
   console.log('   - Has OPERATOR:', !!operatorUser, `(${operatorUser?.email}, linked to ${(operatorUser as any)?.operator?.name})`);
 
-  // 3. Verify Operator Profile
-  const operator = await prisma.operatorProfile.findUnique({ where: { id: 'operator-ibrahim' } });
+  // 3. Verify Company Profile
+  const operator = await prisma.companyProfile.findUnique({ where: { id: 'operator-ibrahim' } });
   console.log('\n3. Operator Profile Check:');
   console.log('   - Operator exists:', !!operator);
   console.log('   - M-Pesa configured:', operator?.mpesaNumber);

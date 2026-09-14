@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -13,8 +13,12 @@ import {
   Settings,
   Shield,
   ArrowUpRight,
+  Sparkles,
+  FileCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
+import UhakikiModal from '@/components/platform/UhakikiModal';
 
 interface Props {
   adminName?: string;
@@ -23,14 +27,17 @@ interface Props {
 
 export default function PlatformNav({ adminName, adminEmail }: Props) {
   const pathname = usePathname();
+  const [isUhakikiOpen, setIsUhakikiOpen] = useState(false);
 
   const navItems = [
     { label: 'Overview', href: '/platform', icon: LayoutDashboard, exact: true },
     { label: 'Bookings Master', href: '/platform/bookings', icon: BookOpen },
+    { label: 'Receipts', href: '/platform/receipts', icon: FileCheck },
     { label: 'Reconciliation', href: '/platform/reconciliation', icon: Scale },
     { label: 'Settlements', href: '/platform/settlements', icon: Receipt },
     { label: 'Operators & Trust', href: '/platform/operators', icon: Users },
     { label: 'Audit Logs', href: '/platform/audit-logs', icon: History },
+    { label: 'Branding & Logo', href: '/platform/branding', icon: Sparkles },
     { label: 'Settings', href: '/platform/settings', icon: Settings },
   ];
 
@@ -46,7 +53,7 @@ export default function PlatformNav({ adminName, adminEmail }: Props) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white tracking-wide">
-                  Ibrahim Tours Platform
+                  Zansafari Horizon Platform
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
                   SUPERADMIN
@@ -86,20 +93,27 @@ export default function PlatformNav({ adminName, adminEmail }: Props) {
           })}
         </nav>
 
-        {/* Operator Preview Link & Logout */}
-        <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/operator"
-            target="_blank"
-            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-700"
-            title="Open Operator Dashboard (read/manage as Ibrahim)"
+        {/* Admin Controls */}
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setIsUhakikiOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer shrink-0"
+            title="Verify 6-character tour check-in code"
           >
-            <span>Operator View</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
-          </Link>
-          <LogoutButton />
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Uhakiki (Verify)</span>
+          </button>
+
+          <div className="hidden md:block">
+            <LogoutButton />
+          </div>
         </div>
       </div>
+
+      <UhakikiModal
+        isOpen={isUhakikiOpen}
+        onClose={() => setIsUhakikiOpen(false)}
+      />
     </header>
   );
 }

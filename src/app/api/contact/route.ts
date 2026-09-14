@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     if (!rateLimit.allowed) {
       return NextResponse.json(
         {
-          error: `Too many contact requests from this address. Please try again in ${rateLimit.retryAfterMinutes} minutes or contact Ibrahim directly via WhatsApp.`,
+          error: `Too many contact requests from this address. Please try again in ${rateLimit.retryAfterMinutes} minutes or contact our team directly via WhatsApp.`,
         },
         { status: 429 }
       );
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Your inquiry has been received. Ibrahim will get back to you shortly!',
+        message: 'Your inquiry has been received. Our team will get back to you shortly!',
       },
       { status: 200 }
     );

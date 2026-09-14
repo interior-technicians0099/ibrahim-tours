@@ -11,12 +11,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
-import { getWhatsAppLink } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function FinalCTA() {
-  const { t } = useLanguage();
-  const whatsAppMsg = t('whatsapp.defaultGreeting');
+  const { t, getLocalizedWhatsAppLink, company } = useLanguage();
+  const brandPhone = company?.officialPhone || company?.phone || OPERATOR.phone;
+  const brandEmail = company?.officialEmail || company?.email || OPERATOR.email;
+  const brandLocation = company?.location || OPERATOR.location;
 
   return (
     <section className="py-20 bg-slate-100 relative">
@@ -52,7 +53,7 @@ export default function FinalCTA() {
               </Link>
 
               <a
-                href={getWhatsAppLink(whatsAppMsg)}
+                href={getLocalizedWhatsAppLink('default')}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-extrabold text-base shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
@@ -65,24 +66,24 @@ export default function FinalCTA() {
             {/* Quick Contact Footer Strip */}
             <div className="mt-10 pt-6 border-t border-white/10 flex flex-wrap items-center justify-center gap-6 text-xs text-slate-300">
               <a
-                href={`tel:${OPERATOR.phone}`}
+                href={`tel:${brandPhone}`}
                 className="flex items-center gap-1.5 hover:text-white transition-colors"
               >
                 <Phone className="w-3.5 h-3.5 text-amber-400" />
-                <span>{t('finalCta.orCall')} {OPERATOR.phone}</span>
+                <span>{t('finalCta.orCall')} {brandPhone}</span>
               </a>
               <span className="hidden sm:inline text-slate-500">•</span>
               <a
-                href={`mailto:${OPERATOR.email}`}
+                href={`mailto:${brandEmail}`}
                 className="flex items-center gap-1.5 hover:text-white transition-colors"
               >
                 <Mail className="w-3.5 h-3.5 text-sky-400" />
-                <span>{OPERATOR.email}</span>
+                <span>{brandEmail}</span>
               </a>
               <span className="hidden sm:inline text-slate-500">•</span>
               <span className="flex items-center gap-1.5 text-emerald-300">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{t('common.licensedGuide')} • {OPERATOR.location}</span>
+                <span>{t('common.licensedGuide')} • {brandLocation}</span>
               </span>
             </div>
           </div>

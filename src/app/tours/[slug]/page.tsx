@@ -36,18 +36,18 @@ export async function generateMetadata({
 
   return {
     title: `${tour.title} | ${OPERATOR.businessName}`,
-    description: `${tour.tagline}. ${tour.description.slice(0, 150)}... Book private tour with Ibrahim with direct transparent pricing.`,
+    description: `${tour.tagline}. ${tour.description.slice(0, 150)}... Book private tour with Zansafari Horizon with direct transparent pricing.`,
     keywords: [
       tour.title,
       'Zanzibar Tours',
       tour.category,
-      'Ibrahim Tours Zanzibar',
+      'Zansafari Horizon',
       'Private Island Tour',
     ],
     openGraph: {
       title: `${tour.title} - Private Zanzibar Tour`,
       description: tour.tagline,
-      url: `https://ibrahimtours.co.tz/tours/${tour.slug}`,
+      url: `https://zansafarihorizon.com/tours/${tour.slug}`,
       siteName: OPERATOR.businessName,
       images: tour.image ? [{ url: tour.image }] : undefined,
       type: 'article',

@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole, getScopedOperatorId } from '@/lib/auth-helpers';
 import { Role } from '@prisma/client';
+import { revalidateCompanyProfile } from '@/lib/company';
 
 export async function GET() {
   try {
-    const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+    const user = await requireRole([Role.COMPANY_ADMIN, Role.OPERATOR, Role.PLATFORM_ADMIN]);
     const scopedOperatorId = await getScopedOperatorId();
 
     const profile = scopedOperatorId
-      ? await prisma.operatorProfile.findUnique({ where: { id: scopedOperatorId } })
-      : await prisma.operatorProfile.findFirst();
+      ? await prisma.companyProfile.findUnique({ where: { id: scopedOperatorId } })
+      : await prisma.companyProfile.findFirst();
 
     if (!profile) {
-      return NextResponse.json({ error: 'Operator profile not found.' }, { status: 404 });
+      return NextResponse.json({ error: 'Company profile not found.' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true, profile });
@@ -27,19 +28,27 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+    const user = await requireRole([Role.COMPANY_ADMIN, Role.OPERATOR, Role.PLATFORM_ADMIN]);
     const scopedOperatorId = await getScopedOperatorId();
 
     const existingProfile = scopedOperatorId
-      ? await prisma.operatorProfile.findUnique({ where: { id: scopedOperatorId } })
-      : await prisma.operatorProfile.findFirst();
+      ? await prisma.companyProfile.findUnique({ where: { id: scopedOperatorId } })
+      : await prisma.companyProfile.findFirst();
 
     if (!existingProfile) {
-      return NextResponse.json({ error: 'Operator profile not found.' }, { status: 404 });
+      return NextResponse.json({ error: 'Company profile not found.' }, { status: 404 });
     }
 
     const body = await request.json();
     const {
+      companyName,
+      tagline,
+      logoUrl,
+      faviconUrl,
+      officialPhone,
+      officialEmail,
+      officialWhatsapp,
+      registrationNumber,
       name,
       businessName,
       phone,
@@ -58,14 +67,22 @@ export async function PATCH(request: NextRequest) {
       languages,
     } = body;
 
-    const updatedProfile = await prisma.operatorProfile.update({
+    const updatedProfile = await prisma.companyProfile.update({
       where: { id: existingProfile.id },
       data: {
+        companyName: companyName !== undefined ? String(companyName).trim() : existingProfile.companyName,
+        tagline: tagline !== undefined ? String(tagline).trim() : existingProfile.tagline,
+        logoUrl: logoUrl !== undefined ? logoUrl : existingProfile.logoUrl,
+        faviconUrl: faviconUrl !== undefined ? faviconUrl : existingProfile.faviconUrl,
+        officialPhone: officialPhone !== undefined ? String(officialPhone).trim() : (phone || existingProfile.officialPhone),
+        officialEmail: officialEmail !== undefined ? String(officialEmail).trim() : (email || existingProfile.officialEmail),
+        officialWhatsapp: officialWhatsapp !== undefined ? String(officialWhatsapp).trim() : (whatsapp || existingProfile.officialWhatsapp),
+        registrationNumber: registrationNumber !== undefined ? String(registrationNumber).trim() : existingProfile.registrationNumber,
         name: name !== undefined ? String(name).trim() : existingProfile.name,
         businessName: businessName !== undefined ? String(businessName).trim() : existingProfile.businessName,
-        phone: phone !== undefined ? String(phone).trim() : existingProfile.phone,
-        whatsapp: whatsapp !== undefined ? String(whatsapp).trim() : existingProfile.whatsapp,
-        email: email !== undefined ? String(email).trim() : existingProfile.email,
+        phone: officialPhone || phone || existingProfile.phone,
+        whatsapp: officialWhatsapp || whatsapp || existingProfile.whatsapp,
+        email: officialEmail || email || existingProfile.email,
         biography: biography !== undefined ? String(biography).trim() : existingProfile.biography,
         profilePhotoUrl: profilePhotoUrl !== undefined ? profilePhotoUrl : existingProfile.profilePhotoUrl,
         traLicenseNumber:
@@ -92,25 +109,28 @@ export async function PATCH(request: NextRequest) {
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        action: 'UPDATE_OPERATOR_PROFILE',
-        entityType: 'OperatorProfile',
+        action: 'UPDATE_COMPANY_PROFILE',
+        entityType: 'CompanyProfile',
         entityId: existingProfile.id,
         details: {
           updatedFields: Object.keys(body),
-          operatorId: existingProfile.id,
-          operatorName: updatedProfile.name,
+          companyId: existingProfile.id,
+          companyName: updatedProfile.companyName,
         },
         ipAddress: clientIp,
       },
     });
 
+    // Trigger instant ISR revalidation
+    await revalidateCompanyProfile();
+
     return NextResponse.json({
       success: true,
-      message: 'Operator profile updated successfully.',
+      message: 'Company profile and branding updated successfully.',
       profile: updatedProfile,
     });
   } catch (error: any) {
-    console.error('Error updating operator profile:', error);
+    console.error('Error updating company profile:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to update profile.' },
       { status: 500 }

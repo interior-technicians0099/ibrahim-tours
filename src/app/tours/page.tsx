@@ -6,9 +6,9 @@ import ToursCatalogClient from '@/components/tours/ToursCatalogClient';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'All Zanzibar Tours & Excursions | Ibrahim Tours',
+  title: 'All Zanzibar Tours & Excursions | Zansafari Horizon',
   description:
-    'Explore our collection of private Zanzibar tours, marine safaris, cultural walks, and full-day combos. No upfront payment required.',
+    'Explore our collection of private Zanzibar tours, marine safaris, cultural walks, and full-day combos. Book directly with Zansafari Horizon.',
 };
 
 export default async function ToursPage() {

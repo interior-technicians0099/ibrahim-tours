@@ -20,7 +20,7 @@ export const SUPPORTED_LANGUAGES: LanguageMeta[] = [
   { code: 'es', name: 'Spanish', nativeName: 'Español', dir: 'ltr', flag: '🇪🇸' },
   { code: 'it', name: 'Italian', nativeName: 'Italiano', dir: 'ltr', flag: '🇮🇹' },
   { code: 'de', name: 'German', nativeName: 'Deutsch', dir: 'ltr', flag: '🇩🇪' },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl', flag: '🇹🇿' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl', flag: '🇸🇦' },
 ];
 
 export interface Dictionary {
@@ -164,7 +164,7 @@ export interface Dictionary {
     accountNumberLabel: string;
     whatsAppCardTitle: string;
     whatsAppCardDesc: string;
-    chatWithIbrahim: string;
+    chatWithCompany: string;
     prefillRefNote: string;
     contactProvidedTitle: string;
     browseMore: string;
@@ -202,7 +202,7 @@ export interface Dictionary {
     experiencesTitle: string;
     contactTitle: string;
     home: string;
-    meetIbrahim: string;
+    aboutUs: string;
     tours: string;
     transfers: string;
     reviews: string;

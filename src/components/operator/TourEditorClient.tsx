@@ -455,7 +455,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
                   2. Pricing & Confidential Cost Matrix
                 </h2>
                 <p className="text-[11px] text-slate-400">
-                  Guest sees Price only. Private Cost & Computed Profit are strictly confidential to Ibrahim.
+                  Guest sees Price only. Private Cost & Computed Profit are strictly confidential to Company Operations.
                 </p>
               </div>
               <button
@@ -679,7 +679,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
                   type="text"
                   value={seoTitle}
                   onChange={(e) => setSeoTitle(e.target.value)}
-                  placeholder="Stone Town Tour Zanzibar | Ibrahim Tours"
+                  placeholder="Stone Town Tour Zanzibar | Zansafari Horizon"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>
@@ -692,7 +692,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
                   type="text"
                   value={seoDescription}
                   onChange={(e) => setSeoDescription(e.target.value)}
-                  placeholder="Book private Stone Town historical guided excursion with certified local guide Ibrahim..."
+                  placeholder="Book private Stone Town historical guided excursion with certified guides from Zansafari Horizon..."
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                 />
               </div>

@@ -1,12 +1,9 @@
 import { PrismaClient } from '@prisma/client';
+import dotenv from 'dotenv';
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: 'postgresql://neondb_owner:npg_cnMTkI5mN8Ei@ep-old-credit-b1hdpvxy-pooler.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require',
-    },
-  },
-});
+const prisma = new PrismaClient();
 
 const TOUR_PHOTO_MAP = {
   'safari-blue': {

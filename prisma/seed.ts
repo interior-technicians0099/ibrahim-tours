@@ -7,7 +7,7 @@ import { hash } from '@node-rs/argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting Ibrahim Tours Zanzibar Database Seed...');
+  console.log('🌱 Starting Zansafari Horizon Database Seed...');
 
   // 1. Settings (commission_rate = null TBD)
   console.log('⚙️ Seeding Settings...');
@@ -21,51 +21,62 @@ async function main() {
     },
   });
 
-  // 2. Operator Profile (Ibrahim)
-  console.log('👤 Seeding Operator Profile...');
-  const operatorData = {
+  // 2. Company Profile (Zansafari Horizon)
+  console.log('🏢 Seeding Company Profile...');
+  const companyData = {
     id: 'operator-ibrahim',
-    name: 'Ibrahim',
-    businessName: 'Ibrahim Tours Zanzibar',
-    tagline: 'Your Trusted Guide to Paradise Island',
+    companyName: 'Zansafari Horizon',
+    tagline: 'Spice • Culture • Wildlife',
+    name: 'Zansafari Horizon Operations',
+    businessName: 'Zansafari Horizon Tours & Safaris Ltd',
+    logoUrl: '/branding/zansafari-logo.png',
+    faviconUrl: '/branding/favicon.png',
+    officialPhone: '+255 618 769 150',
+    officialEmail: 'info@zansafarihorizon.com',
+    officialWhatsapp: '+255 618 769 150',
+    registrationNumber: 'ZNZ-BR-2024-00892',
+    traLicenseNumber: 'TRA-ZNZ-2024-8841',
+    traLicenseExpiry: new Date('2026-12-31T23:59:59Z'),
+    traLicenseUrl: '/licenses/tra-license.pdf',
     biography:
-      'Born and raised in Zanzibar, Ibrahim has guided travelers across Unguja for over a decade. His passion for Swahili culture, deep knowledge of coral reefs, and fluent multilingual communication ensure authentic, 5-star island experiences.',
-    shortBio: 'Licensed Zanzibar tour guide & native islander with 10+ years of 5-star experience.',
-    profilePhotoUrl: '/images/ibrahim-profile.webp',
+      'Zansafari Horizon is a premier registered Zanzibari tour and safari company based in Stone Town. Guided by native island professionals with over a decade of verified experience, we deliver authentic, sustainable, and personalized cultural excursions, marine safaris, and island transfers across Zanzibar and East Africa.',
+    shortBio: 'Registered Zanzibari tour and safari company specializing in authentic cultural journeys and marine safaris.',
+    profilePhotoUrl: '/branding/zansafari-logo.png',
     yearsExperience: 10,
-    languages: ['English', 'Swahili', 'Italian'],
-    phone: '+255700000000',
-    whatsapp: '255700000000',
-    email: 'info@ibrahimtours.co.tz',
+    languages: ['English', 'Swahili', 'Italian', 'French', 'German', 'Spanish'],
+    phone: '+255 618 769 150',
+    whatsapp: '255618769150',
+    email: 'info@zansafarihorizon.com',
     socials: {
-      facebook: 'https://facebook.com/ibrahimtourszanzibar',
-      instagram: 'https://instagram.com/ibrahimtours_zanzibar',
+      facebook: 'https://facebook.com/zansafarihorizon',
+      instagram: 'https://instagram.com/zansafarihorizon',
     },
     paymentInstructions:
       'Your booking request has been reviewed and confirmed. To secure your reservation, please send the full payment to the M-Pesa number or Bank Account provided below. Your booking is confirmed only when full payment is received.',
     paymentNotes: 'Always verify the payment reference number before sending the final confirmation voucher.',
-    mpesaNumber: '+255 700 000 000 (Vodacom M-Pesa)',
-    bankName: 'CRDB Bank Tanzania',
-    bankAccount: '0150 0000 0000 0 (Ibrahim Tours)',
-    traLicenseNumber: 'TRA-ZNZ-2024-8841',
-    traLicenseExpiry: new Date('2026-12-31T23:59:59Z'),
-    traLicenseUrl: '/licenses/tra-license-ibrahim.pdf',
+    mpesaNumber: '+255 618 769 150 (Zansafari Horizon)',
+    bankName: 'CRDB Bank Zanzibar',
+    bankAccount: '0150 0000 0000 0',
     commissionRate: null, // Inherit from global settings
+    leadGuideName: 'Ibrahim',
+    leadGuidePhone: '+255 618 769 150',
+    leadGuideWhatsApp: '+255 618 769 150',
+    leadGuideEmail: 'info@zansafarihorizon.com',
   };
 
-  const ibrahimProfile = await prisma.operatorProfile.upsert({
+  const ibrahimProfile = await prisma.companyProfile.upsert({
     where: { id: 'operator-ibrahim' },
-    update: operatorData,
-    create: operatorData,
+    update: companyData,
+    create: companyData,
   });
 
-  // 3. Admin Users (Platform Admin + Ibrahim Operator)
+  // 3. Admin Users (Platform Admin + Company Admin + Operator)
   console.log('🔐 Seeding Admin Users (argon2id)...');
   const defaultAdminHash = await hash('AdminPass123!');
-  const defaultOperatorHash = await hash('IbrahimTour2026!');
+  const defaultOperatorHash = await hash('Zansafari2026!');
 
   await prisma.adminUser.upsert({
-    where: { email: 'admin@ibrahimtours.co.tz' },
+    where: { email: 'admin@zansafarihorizon.com' },
     update: {
       name: 'Platform SuperAdmin',
       passwordHash: defaultAdminHash,
@@ -74,7 +85,7 @@ async function main() {
       mustChangePassword: true,
     },
     create: {
-      email: 'admin@ibrahimtours.co.tz',
+      email: 'admin@zansafarihorizon.com',
       name: 'Platform SuperAdmin',
       passwordHash: defaultAdminHash,
       role: Role.PLATFORM_ADMIN,
@@ -84,9 +95,30 @@ async function main() {
   });
 
   await prisma.adminUser.upsert({
-    where: { email: 'ibrahim@ibrahimtours.co.tz' },
+    where: { email: 'manager@zansafarihorizon.com' },
     update: {
-      name: 'Ibrahim (Operator)',
+      name: 'Company Manager',
+      passwordHash: defaultOperatorHash,
+      role: Role.COMPANY_ADMIN,
+      operatorId: ibrahimProfile.id,
+      isActive: true,
+      mustChangePassword: true,
+    },
+    create: {
+      email: 'manager@zansafarihorizon.com',
+      name: 'Company Manager',
+      passwordHash: defaultOperatorHash,
+      role: Role.COMPANY_ADMIN,
+      operatorId: ibrahimProfile.id,
+      isActive: true,
+      mustChangePassword: true,
+    },
+  });
+
+  await prisma.adminUser.upsert({
+    where: { email: 'operator@zansafarihorizon.com' },
+    update: {
+      name: 'Zansafari Operations',
       passwordHash: defaultOperatorHash,
       role: Role.OPERATOR,
       operatorId: ibrahimProfile.id,
@@ -94,8 +126,8 @@ async function main() {
       mustChangePassword: true,
     },
     create: {
-      email: 'ibrahim@ibrahimtours.co.tz',
-      name: 'Ibrahim (Operator)',
+      email: 'operator@zansafarihorizon.com',
+      name: 'Zansafari Operations',
       passwordHash: defaultOperatorHash,
       role: Role.OPERATOR,
       operatorId: ibrahimProfile.id,
@@ -711,7 +743,7 @@ async function main() {
       reviewerCountry: 'United Kingdom',
       rating: 5,
       title: 'Safari Blue & Stone Town Full Day',
-      body: 'Booking with Ibrahim made our Zanzibar holiday seamless and unforgettable! He met us on time with a clean AC van, shared amazing stories about Stone Town, and the Safari Blue seafood lunch was simply out of this world. Booking through WhatsApp was instant and stress-free.',
+      body: 'Booking with Zansafari Horizon made our Zanzibar holiday seamless and unforgettable! Our private guide met us on time with a clean AC van, shared amazing stories about Stone Town, and the Safari Blue seafood lunch was simply out of this world. Booking through WhatsApp was instant and stress-free.',
       source: 'TripAdvisor',
       type: ReviewType.VERIFIED,
       isPublished: true,
@@ -722,7 +754,7 @@ async function main() {
       reviewerCountry: 'Italy',
       rating: 5,
       title: 'Mnemba Island & Spice Tour',
-      body: 'Ibrahim parla un ottimo italiano ed è stato una guida fantastica per tutta la nostra famiglia! Abbiamo nuotato con i delfini a Mnemba e visitato le piantagioni di spezie. Prezzi chiarissimi, nessun costo nascosto e puntualità svizzera. Consigliatissimo a tutti gli italiani!',
+      body: 'Zansafari Horizon ha fornito un servizio impeccabile con guide che parlano un ottimo italiano! Abbiamo nuotato con i delfini a Mnemba e visitato le piantagioni di spezie. Prezzi chiarissimi, nessun costo nascosto e puntualità svizzera. Consigliatissimo a tutti i viaggiatori!',
       source: 'Direct',
       type: ReviewType.VERIFIED,
       isPublished: true,
@@ -733,7 +765,7 @@ async function main() {
       reviewerCountry: 'Sweden',
       rating: 5,
       title: 'Airport Transfers & Jozani Forest',
-      body: 'We booked both airport transfers and the Jozani Forest tour with Ibrahim. Communication on WhatsApp was super quick, driver was waiting right at the arrivals terminal with a name sign, and seeing the Red Colobus monkeys was magical. 10/10 service!',
+      body: 'We booked both airport transfers and the Jozani Forest tour with Zansafari Horizon. Communication on WhatsApp was super quick, driver was waiting right at the arrivals terminal with a name sign, and seeing the Red Colobus monkeys was magical. 10/10 company service!',
       source: 'Google',
       type: ReviewType.VERIFIED,
       isPublished: true,
@@ -764,49 +796,49 @@ async function main() {
     {
       question: 'Do I pay online when submitting a booking request?',
       answer:
-        'No, you do not need to pay via credit card on the website. After you submit your request, Ibrahim will personally confirm availability. You will then receive an M-Pesa number or Bank Transfer details to make your full payment. Your booking is only confirmed once full payment is received.',
+        'No, you do not need to pay via credit card on the website. After you submit your request, Zansafari Horizon will review and confirm availability. You will then receive an M-Pesa number or Bank Transfer details to complete your full payment. Your booking is confirmed once full payment is received.',
       category: 'Booking & Payment',
       sortOrder: 1,
     },
     {
       question: 'How is my booking confirmed?',
       answer:
-        'Once you submit a request form or send a WhatsApp message, Ibrahim personally verifies availability and responds within a short time with full pickup details, vehicle assignment, and your final voucher confirmation.',
+        'Once you submit a request form or send a WhatsApp message, our operations team verifies availability and responds promptly with full pickup details, vehicle and guide assignment, and your official booking confirmation voucher.',
       category: 'Booking & Payment',
       sortOrder: 2,
     },
     {
       question: 'Can I book directly via WhatsApp?',
       answer:
-        'Yes, absolutely! WhatsApp is the fastest and most convenient method. You can click any of our "Chat on WhatsApp" buttons with prefilled tour or transfer details, and Ibrahim will assist you immediately in English, Italian, or Swahili.',
+        'Yes, absolutely! WhatsApp is our fastest communication channel. You can click any of our "Chat on WhatsApp" buttons with prefilled tour or transfer details, and our team will assist you immediately in English, Italian, French, German, or Swahili.',
       category: 'Booking & Payment',
       sortOrder: 3,
     },
     {
       question: 'What payment methods do you accept?',
       answer:
-        'We accept Cash (US Dollars printed after 2009, Euros, British Pounds, and Tanzanian Shillings), Vodacom M-Pesa mobile money, and local/international bank transfers.',
+        'We accept official company Vodacom M-Pesa payments, local and international bank transfers (USD / EUR / GBP / TZS), and cash on arrival upon prior arrangement.',
       category: 'Payment',
       sortOrder: 4,
     },
     {
       question: 'Are airport pickups and hotel transfers private?',
       answer:
-        'Yes, 100% of our transfers and tours are private for you and your group. Your driver will greet you at Abeid Amani Karume International Airport (ZNZ) arrivals with a personalized name board and assist with your luggage.',
+        'Yes, 100% of our transfers and tours are private for you and your travel companions. Your dedicated professional driver will greet you at Abeid Amani Karume International Airport (ZNZ) arrivals with a personalized name board and assist with your luggage.',
       category: 'Transfers',
       sortOrder: 5,
     },
     {
       question: 'Can I customize a tour or combine multiple destinations?',
       answer:
-        'Yes! Because Ibrahim is a private operator, we can tailor custom combos to suit your schedule and interests (e.g. combining Jozani Forest, Spice Farm, and The Rock Restaurant in a single day). Simply let us know your preferred itinerary on WhatsApp.',
+        'Yes! As a full-service private tour company, Zansafari Horizon specializes in tailored itineraries (e.g. combining Jozani Forest, Spice Farm, and The Rock Restaurant in a single day). Simply message our team on WhatsApp to customize your itinerary.',
       category: 'Tours',
       sortOrder: 6,
     },
     {
       question: 'What happens after I submit a booking request on the site?',
       answer:
-        'We receive your details immediately. Ibrahim checks driver and boat availability for your requested date and contacts you directly via WhatsApp or Email to confirm meeting time, hotel pickup location, and final pricing.',
+        'We receive your request instantly. Our operations dispatch checks driver, boat, and guide availability for your selected date and contacts you directly via WhatsApp or Email with your schedule and payment instructions.',
       category: 'Booking & Payment',
       sortOrder: 7,
     },

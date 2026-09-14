@@ -28,7 +28,7 @@ export default function RouteError({
 
         <div className="space-y-2">
           <span className="text-xs font-bold text-sky-600 uppercase tracking-wider">
-            Ibrahim Tours Zanzibar
+            Zansafari Horizon
           </span>
           <h2 className="text-2xl font-black tracking-tight text-slate-900">
             Page Unavailable

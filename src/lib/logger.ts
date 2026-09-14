@@ -1,5 +1,5 @@
 /**
- * Structured Logger & Error Tracker for Ibrahim Tours Zanzibar
+ * Structured Logger & Error Tracker for Zansafari Horizon
  * Captures operational events, audit data, and dispatches critical exceptions to Sentry.
  */
 

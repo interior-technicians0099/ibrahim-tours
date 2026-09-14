@@ -14,8 +14,10 @@ generator client {
 
 enum Role {
   PLATFORM_ADMIN
+  COMPANY_ADMIN
   OPERATOR
 }
+
 
 enum ServiceType {
   TOUR
@@ -95,7 +97,7 @@ model AdminUser {
   name             String
   role             Role
   operatorId       String?
-  operator         OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operator         CompanyProfile?  @relation(fields: [operatorId], references: [id], onDelete: SetNull)
   isActive         Boolean          @default(true)
   mustChangePassword Boolean        @default(true)
   lastLogin        DateTime?
@@ -103,34 +105,53 @@ model AdminUser {
   auditLogs        AuditLog[]
   bookingsRecorded Booking[]        @relation("BookingsRecorded")
   paymentsRecorded Payment[]        @relation("PaymentsRecorded")
+  receiptsIssued    Receipt[]        @relation("ReceiptsIssued")
+  bookingsCheckedIn Booking[]        @relation("BookingsCheckedIn")
 
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 }
 
-model OperatorProfile {
+model CompanyProfile {
   id                  String              @id @default(cuid())
-  name                String
-  businessName        String
-  tagline             String
+  companyName         String              @default("Zansafari Horizon")
+  tagline             String              @default("Spice • Culture • Wildlife")
+  logoUrl             String?             @default("/branding/zansafari-logo.png")
+  faviconUrl          String?             @default("/branding/favicon.png")
+  officialPhone       String              @default("+255 777 000 000")
+  officialEmail       String              @default("info@zansafarihorizon.com")
+  officialWhatsapp    String              @default("+255 777 000 000")
+  registrationNumber  String?             @default("ZNZ-BR-2024-00892")
+  traLicenseNumber    String?             @default("TRA-ZNZ-2024-8841")
+  traLicenseExpiry    DateTime?
+  traLicenseUrl       String?
+  
+  // Confidential Company Payment Details
+  mpesaNumber         String?             @default("+255 777 000 000 (Zansafari Horizon)")
+  bankName            String?             @default("CRDB Bank Zanzibar")
+  bankAccount         String?             @default("0150 0000 0000 0")
+  paymentInstructions String              @db.Text
+  paymentNotes        String?             @db.Text
+
+  // Operations & Guide Fleet Teaser
+  name                String              @default("Zansafari Horizon Operations")
+  businessName        String              @default("Zansafari Horizon Tours & Safaris Ltd")
   biography           String              @db.Text
   shortBio            String?             @db.Text
   profilePhotoUrl     String?
   yearsExperience     Int                 @default(10)
-  languages           String[]
-  phone               String
-  whatsapp            String
-  email               String
+  languages           String[]            @default(["English", "Swahili", "Italian", "French", "German", "Spanish"])
+  phone               String              @default("+255 777 000 000")
+  whatsapp            String              @default("+255 777 000 000")
+  email               String              @default("info@zansafarihorizon.com")
   socials             Json?               // { facebook?: string, instagram?: string, ... }
-  paymentInstructions String              @db.Text // Confidential: instructions for tourists
-  paymentNotes        String?             @db.Text
-  mpesaNumber         String?
-  bankName            String?
-  bankAccount         String?
-  traLicenseNumber    String?
-  traLicenseExpiry    DateTime?
-  traLicenseUrl       String?
   commissionRate      Decimal?            @db.Decimal(5, 4) // Override rate (e.g. 0.1500 = 15%, null inherits from Settings)
+  
+  // Lead Guide Operations (Ibrahim)
+  leadGuideName       String?             @default("Ibrahim")
+  leadGuidePhone      String?             @default("+255 618 769 150")
+  leadGuideWhatsApp   String?             @default("+255 618 769 150")
+  leadGuideEmail      String?             @default("info@zansafarihorizon.com")
   
   users               AdminUser[]
   tours               Tour[]
@@ -142,6 +163,8 @@ model OperatorProfile {
 
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
+
+  @@map("CompanyProfile")
 }
 
 // --------------------------------------------------------
@@ -171,7 +194,7 @@ model Tour {
   categoryId         String
   category           TourCategory     @relation(fields: [categoryId], references: [id])
   operatorId         String?
-  operator           OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operator           CompanyProfile?  @relation(fields: [operatorId], references: [id], onDelete: SetNull)
   
   durationText       String           // e.g., "Full Day", "Half Day"
   startingPriceCents Int              // In cents (e.g., 10500 = $105.00)
@@ -215,7 +238,7 @@ model TransportService {
   description String?          @db.Text
   serviceType String           @default("AIRPORT_TRANSFER")
   operatorId  String?
-  operator    OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operator    CompanyProfile?  @relation(fields: [operatorId], references: [id], onDelete: SetNull)
   isActive    Boolean          @default(true)
   isFeatured  Boolean          @default(false)
 
@@ -254,7 +277,7 @@ model Vehicle {
   imageUrl       String?
   features       Json?            // string[]
   operatorId     String?
-  operator       OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operator       CompanyProfile?  @relation(fields: [operatorId], references: [id], onDelete: SetNull)
   isActive       Boolean          @default(true)
 
   createdAt      DateTime         @default(now())
@@ -276,7 +299,7 @@ model Booking {
   routeId               String?
   route                 Route?           @relation(fields: [routeId], references: [id])
   operatorId            String?
-  operator              OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operator              CompanyProfile?  @relation(fields: [operatorId], references: [id], onDelete: SetNull)
 
   tier                  String?          // "single", "couple", "van1to3", etc.
   customerName          String
@@ -312,12 +335,24 @@ model Booking {
   costOverrideNotes     String?          @db.Text
   operatorNotes         String?          @db.Text
 
+  // Offline Guide Operations
+  guideName             String?
+  guidePhone            String?
+  guideNotes            String?          @db.Text
+  leadForwardedAt       DateTime?
+  workOrderSentAt       DateTime?
+
   confirmedAt           DateTime?
   cancelledAt           DateTime?
   cancellationReason    String?          @db.Text
+  checkedInAt           DateTime?
+  checkedInById         String?
+  checkedInBy           AdminUser?       @relation("BookingsCheckedIn", fields: [checkedInById], references: [id], onDelete: SetNull)
+
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 
+  receipt               Receipt?
   payments              Payment[]
   notifications         Notification[]
   reviews               Review[]
@@ -340,6 +375,31 @@ model Payment {
   recordedBy       AdminUser?    @relation("PaymentsRecorded", fields: [recordedById], references: [id], onDelete: SetNull)
 
   createdAt        DateTime      @default(now())
+}
+
+// --------------------------------------------------------
+// OFFICIAL BRANDED RECEIPTS & VERIFICATION (UHAKIKI)
+// --------------------------------------------------------
+
+model Receipt {
+  id               String        @id @default(cuid())
+  receiptNumber    String        @unique // e.g. "ZSH-2026-000001"
+  verificationCode String        @unique // 6-char alphanumeric e.g. "K9X2P7"
+  bookingId        String        @unique
+  booking          Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  amountCents      Int
+  currency         String        @default("USD")
+  paymentMethod    PaymentMethod
+  paymentReference String?
+  notes            String?       @db.Text // Offline refunds, dispute, or reconciliation notes
+  
+  issuedAt         DateTime      @default(now())
+  issuedById       String?
+  issuedBy         AdminUser?    @relation("ReceiptsIssued", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 // --------------------------------------------------------
@@ -377,7 +437,7 @@ model Review {
 model MonthlySettlement {
   id                 String           @id @default(cuid())
   operatorId         String
-  operator           OperatorProfile  @relation(fields: [operatorId], references: [id])
+  operator           CompanyProfile   @relation(fields: [operatorId], references: [id])
   month              String           // "YYYY-MM"
   totalBookings      Int              @default(0)
   totalRevenueCents  BigInt           @default(0)
@@ -440,7 +500,7 @@ model Faq {
 model MediaAsset {
   id          String           @id @default(cuid())
   operatorId  String?
-  operator    OperatorProfile? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  operator    CompanyProfile?  @relation(fields: [operatorId], references: [id], onDelete: SetNull)
   publicId    String           @unique
   url         String
   secureUrl   String?

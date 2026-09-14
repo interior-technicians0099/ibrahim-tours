@@ -13,22 +13,37 @@ import {
   Percent,
   Sliders,
   Shield,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 
 import PlatformNav from '@/components/platform/PlatformNav';
+import { UserCheck } from 'lucide-react';
 
 interface Props {
   initialRate: number | null;
   adminEmail: string;
+  initialLeadGuide?: {
+    leadGuideName: string;
+    leadGuidePhone: string;
+    leadGuideWhatsApp: string;
+    leadGuideEmail: string;
+  };
 }
 
-export default function PlatformSettingsClient({ initialRate, adminEmail }: Props) {
+export default function PlatformSettingsClient({ initialRate, adminEmail, initialLeadGuide }: Props) {
   const [rate, setRate] = useState<string>(initialRate !== null ? initialRate.toString() : '');
   const [notificationEmail, setNotificationEmail] = useState<string>(
-    adminEmail || 'admin@ibrahimtours.co.tz'
+    adminEmail || 'admin@zansafarihorizon.com'
   );
   const [alertConfirmed, setAlertConfirmed] = useState<boolean>(true);
   const [alertReconciliation, setAlertReconciliation] = useState<boolean>(true);
+
+  // Lead Guide Operations (Ibrahim) State
+  const [leadGuideName, setLeadGuideName] = useState(initialLeadGuide?.leadGuideName || 'Ibrahim');
+  const [leadGuidePhone, setLeadGuidePhone] = useState(initialLeadGuide?.leadGuidePhone || '+255 618 769 150');
+  const [leadGuideWhatsApp, setLeadGuideWhatsApp] = useState(initialLeadGuide?.leadGuideWhatsApp || '+255 618 769 150');
+  const [leadGuideEmail, setLeadGuideEmail] = useState(initialLeadGuide?.leadGuideEmail || 'info@zansafarihorizon.com');
 
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -41,7 +56,8 @@ export default function PlatformSettingsClient({ initialRate, adminEmail }: Prop
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/platform/settings/commission', {
+      // 1. Save Commission Rate
+      const resComm = await fetch('/api/platform/settings/commission', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -50,14 +66,29 @@ export default function PlatformSettingsClient({ initialRate, adminEmail }: Prop
         }),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setErrorMsg(data.error || 'Failed to save settings.');
-        setIsSaving(false);
-        return;
+      const dataComm = await resComm.json();
+      if (!resComm.ok || !dataComm.success) {
+        throw new Error(dataComm.error || 'Failed to save commission settings.');
       }
 
-      setSuccessMsg('Platform settings and commission rates saved successfully.');
+      // 2. Save Lead Guide Settings
+      const resGuide = await fetch('/api/platform/settings/lead-guide', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadGuideName,
+          leadGuidePhone,
+          leadGuideWhatsApp,
+          leadGuideEmail,
+        }),
+      });
+
+      const dataGuide = await resGuide.json();
+      if (!resGuide.ok || !dataGuide.success) {
+        throw new Error(dataGuide.error || 'Failed to save lead guide settings.');
+      }
+
+      setSuccessMsg('Platform settings, commission rates, and Ibrahim contact details saved successfully.');
       setTimeout(() => setSuccessMsg(null), 3500);
     } catch (err: any) {
       setErrorMsg(err?.message || 'Network error saving settings.');
@@ -102,6 +133,33 @@ export default function PlatformSettingsClient({ initialRate, adminEmail }: Prop
           </div>
         )}
 
+        {/* Quick Access Card for Branding & Logo */}
+        <div className="bg-gradient-to-r from-amber-500/10 via-slate-900/80 to-indigo-500/10 border border-amber-500/30 rounded-3xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 shadow-lg shadow-amber-500/20">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-white">Company Branding & Website Logo</h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Live Identity
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Upload new website logo, change brand name, tagline, official contacts, and TRA license credentials.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/operator/branding"
+            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all shrink-0 active:scale-95"
+          >
+            <span>Manage Branding & Logo</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
         <form onSubmit={handleSave} className="space-y-6">
           {/* 1. Global Commission Rate */}
           <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
@@ -135,7 +193,7 @@ export default function PlatformSettingsClient({ initialRate, adminEmail }: Prop
                 <span className="absolute right-4 top-3 text-sm font-bold text-slate-400">%</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                Leave empty or null to keep commission marked as <em>&quot;pending rate&quot;</em> until officially finalized with Ibrahim.
+                Leave empty or null to keep commission marked as <em>&quot;pending rate&quot;</em> until officially finalized with the operator.
               </p>
 
               {/* Recalculate Action */}
@@ -228,6 +286,83 @@ export default function PlatformSettingsClient({ initialRate, adminEmail }: Prop
                     Highlight reconciliation discrepancy warnings on the platform dashboard
                   </span>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Lead Guide Operations (Ibrahim Contact Settings) */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
+            <div className="flex items-center gap-2.5 pb-4 border-b border-slate-800">
+              <UserCheck className="w-5 h-5 text-emerald-400" />
+              <div>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-white">
+                  Lead Guide Operations (Ibrahim)
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Contact credentials used by Platform Admins to forward booking leads and dispatch official work orders
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-900/40 text-xs text-emerald-300 leading-relaxed">
+              <strong>Operating Model:</strong> Ibrahim has no system dashboard in V1. He receives prefilled WhatsApp leads and work orders, and sources professional guides offline from his Zanzibar network based on the tourist&apos;s language.
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Lead Guide Full Name
+                </label>
+                <input
+                  type="text"
+                  value={leadGuideName}
+                  onChange={(e) => setLeadGuideName(e.target.value)}
+                  required
+                  placeholder="e.g. Ibrahim"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Official Phone Number
+                </label>
+                <input
+                  type="text"
+                  value={leadGuidePhone}
+                  onChange={(e) => setLeadGuidePhone(e.target.value)}
+                  required
+                  placeholder="e.g. +255 618 769 150"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Direct WhatsApp Number (International format)
+                </label>
+                <input
+                  type="text"
+                  value={leadGuideWhatsApp}
+                  onChange={(e) => setLeadGuideWhatsApp(e.target.value)}
+                  required
+                  placeholder="e.g. +255 618 769 150"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Official Operations Email
+                </label>
+                <input
+                  type="email"
+                  value={leadGuideEmail}
+                  onChange={(e) => setLeadGuideEmail(e.target.value)}
+                  required
+                  placeholder="e.g. info@zansafarihorizon.com"
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
               </div>
             </div>
           </div>

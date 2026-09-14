@@ -10,7 +10,7 @@ import OperatorManagementClient, {
 export default async function PlatformOperatorsPage() {
   await requireRole(Role.PLATFORM_ADMIN);
 
-  const rawOperators = await prisma.operatorProfile.findMany({
+  const rawOperators = await prisma.companyProfile.findMany({
     include: {
       tours: true,
       vehicles: true,

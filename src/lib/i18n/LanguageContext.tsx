@@ -13,6 +13,7 @@ import {
   matchBrowserLocale,
 } from './index';
 import { OPERATOR } from '@/lib/constants';
+import type { CompanyProfileData } from '@/lib/company';
 
 interface LanguageContextValue {
   locale: Locale;
@@ -22,6 +23,7 @@ interface LanguageContextValue {
   setLocale: (locale: Locale) => void;
   t: (path: string, params?: Record<string, string | number>) => string;
   getLocalizedWhatsAppLink: (type?: 'default' | 'tour' | 'transfer' | 'confirmation' | 'faq', data?: Record<string, string>) => string;
+  company: CompanyProfileData | null;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -40,10 +42,11 @@ function setCookie(name: string, value: string, days = 365) {
 
 interface LanguageProviderProps {
   initialLocale?: Locale;
+  company?: CompanyProfileData | null;
   children: React.ReactNode;
 }
 
-export function LanguageProvider({ initialLocale, children }: LanguageProviderProps) {
+export function LanguageProvider({ initialLocale, company, children }: LanguageProviderProps) {
   const [locale, setLocaleState] = useState<Locale>(initialLocale || DEFAULT_LOCALE);
 
   // Sync document attributes on change
@@ -123,10 +126,11 @@ export function LanguageProvider({ initialLocale, children }: LanguageProviderPr
     [dictionary, defaultDictionary]
   );
 
-  // Localized WhatsApp link generator
+  // Localized WhatsApp link generator (uses dynamic company profile official whatsapp with fallback)
   const getLocalizedWhatsAppLink = useCallback(
     (type: 'default' | 'tour' | 'transfer' | 'confirmation' | 'faq' = 'default', data?: Record<string, string>): string => {
-      const phone = OPERATOR.whatsapp.replace(/[^0-9]/g, '');
+      const rawPhone = company?.officialWhatsapp || company?.whatsapp || OPERATOR.whatsapp;
+      const phone = rawPhone.replace(/[^0-9]/g, '');
       const base = `https://wa.me/${phone}`;
       
       let message = '';
@@ -158,7 +162,7 @@ export function LanguageProvider({ initialLocale, children }: LanguageProviderPr
 
       return `${base}?text=${encodeURIComponent(message)}`;
     },
-    [t]
+    [t, company]
   );
 
   const contextValue = useMemo<LanguageContextValue>(
@@ -170,8 +174,9 @@ export function LanguageProvider({ initialLocale, children }: LanguageProviderPr
       setLocale,
       t,
       getLocalizedWhatsAppLink,
+      company: company || null,
     }),
-    [locale, meta, setLocale, t, getLocalizedWhatsAppLink]
+    [locale, meta, setLocale, t, getLocalizedWhatsAppLink, company]
   );
 
   return <LanguageContext.Provider value={contextValue}>{children}</LanguageContext.Provider>;

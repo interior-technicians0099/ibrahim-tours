@@ -5,28 +5,28 @@ import { Role } from '@prisma/client';
 import OperatorProfileClient from '@/components/operator/OperatorProfileClient';
 
 export default async function OperatorProfilePage() {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
 
   const profile = scopedOperatorId
-    ? await prisma.operatorProfile.findUnique({ where: { id: scopedOperatorId } })
-    : await prisma.operatorProfile.findFirst();
+    ? await prisma.companyProfile.findUnique({ where: { id: scopedOperatorId } })
+    : await prisma.companyProfile.findFirst();
 
   const initialProfile = {
     id: profile?.id || 'operator-ibrahim',
-    name: profile?.name || 'Ibrahim',
-    businessName: profile?.businessName || 'Ibrahim Tours & Transfers Zanzibar',
-    phone: profile?.phone || '+255 777 000 000',
-    whatsapp: profile?.whatsapp || '+255 777 000 000',
-    email: profile?.email || 'ibrahim@ibrahimtours.com',
+    name: profile?.name || 'Operations Lead',
+    businessName: profile?.companyName || profile?.businessName || 'Zansafari Horizon',
+    phone: profile?.officialPhone || profile?.phone || '+255 618 769 150',
+    whatsapp: profile?.officialWhatsapp || profile?.whatsapp || '+255 618 769 150',
+    email: profile?.officialEmail || profile?.email || 'info@zansafarihorizon.com',
     biography:
       profile?.biography ||
-      'Official licensed tour operator and guide in Zanzibar with over 10 years of experience providing private excursions, Stone Town heritage tours, Safari Blue, and airport transfers.',
+      'Registered tour operator and premier safari & excursion company in Zanzibar providing private excursions, Stone Town heritage tours, Safari Blue, and airport transfers.',
     paymentInstructions:
       profile?.paymentInstructions ||
       'Your booking request has been reviewed and confirmed. To secure your reservation, please send the full payment to the M-Pesa number or Bank Account provided below. Your booking is confirmed only when full payment is received.',
     paymentNotes: profile?.paymentNotes || null,
-    mpesaNumber: profile?.mpesaNumber || '+255 700 000 000',
+    mpesaNumber: profile?.mpesaNumber || '+255 618 769 150 (Zansafari Horizon)',
     bankName: profile?.bankName || 'CRDB Bank Zanzibar',
     bankAccount: profile?.bankAccount || '0150 0000 0000 0',
     traLicenseNumber: profile?.traLicenseNumber || 'TRA-ZNZ-2024-8841',

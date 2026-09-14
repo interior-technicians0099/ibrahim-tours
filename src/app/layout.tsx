@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import MobileStickyBar from '@/components/layout/MobileStickyBar';
 import { OPERATOR } from '@/lib/constants';
+import { getCompanyProfile } from '@/lib/company';
 import { LanguageProvider } from '@/lib/i18n/LanguageContext';
 import { isSupportedLocale, Locale, DEFAULT_LOCALE } from '@/lib/i18n';
 
@@ -23,16 +24,17 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://ibrahimtours.co.tz'),
+  metadataBase: new URL(process.env.NEXTAUTH_URL || 'https://zansafarihorizon.com'),
   title: {
-    default: `${OPERATOR.businessName} | Private Tours, Excursions & Airport Transfers in Zanzibar`,
+    default: `${OPERATOR.businessName} | Private Tours, Safari & Transfers in Zanzibar`,
     template: `%s | ${OPERATOR.businessName}`,
   },
   description:
-    'Book authentic private tours, dolphin safaris, spice farm visits, and reliable airport transfers in Zanzibar with Ibrahim. Local licensed guide with 10+ years experience, transparent USD pricing, and flexible WhatsApp booking with no online prepayment required.',
+    'Book authentic private tours, dolphin safaris, spice farm visits, and reliable airport transfers in Zanzibar with Zansafari Horizon. Certified professional guides, transparent USD pricing, and flexible WhatsApp booking with secure payment via M-Pesa or Bank transfer.',
   keywords: [
+    'Zansafari Horizon',
     'Zanzibar Tours',
-    'Ibrahim Tours Zanzibar',
+    'Zanzibar Safari',
     'Stone Town Tour',
     'Mnemba Island Snorkeling',
     'Safari Blue Zanzibar',
@@ -41,16 +43,21 @@ export const metadata: Metadata = {
     'Prison Island Giant Tortoises',
     'Jozani Forest Red Colobus',
   ],
-  authors: [{ name: OPERATOR.name, url: 'https://ibrahimtours.co.tz' }],
+  authors: [{ name: OPERATOR.businessName, url: 'https://zansafarihorizon.com' }],
   creator: OPERATOR.businessName,
+  icons: {
+    icon: '/branding/favicon.png',
+    shortcut: '/branding/favicon.png',
+    apple: '/branding/zansafari-logo.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://ibrahimtours.co.tz',
+    url: 'https://zansafarihorizon.com',
     siteName: OPERATOR.businessName,
-    title: `${OPERATOR.businessName} | Your Trusted Local Guide in Zanzibar`,
+    title: `${OPERATOR.businessName} | Spice • Culture • Wildlife`,
     description:
-      'Private island tours, dhow cruises, and airport transfers across Zanzibar. Certified local guide, clear pricing, and instant WhatsApp booking.',
+      'Private island tours, dhow cruises, and airport transfers across Zanzibar. Certified local guides, clear pricing, and instant WhatsApp booking.',
     images: [
       {
         url: '/images/safari-blue.webp',
@@ -62,9 +69,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${OPERATOR.businessName} | Zanzibar Private Tours`,
+    title: `${OPERATOR.businessName} | Spice • Culture • Wildlife`,
     description:
-      'Explore Zanzibar with licensed local guide Ibrahim. Book private tours and transfers directly on WhatsApp.',
+      'Explore Zanzibar with Zansafari Horizon. Book private tours and transfers directly on WhatsApp.',
     images: ['/images/safari-blue.webp'],
   },
   robots: {
@@ -84,6 +91,7 @@ export default async function RootLayout({
     ? (localeCookie as Locale)
     : DEFAULT_LOCALE;
   const initialDir = initialLocale === 'ar' ? 'rtl' : 'ltr';
+  const companyProfile = await getCompanyProfile();
 
   return (
     <html
@@ -96,11 +104,11 @@ export default async function RootLayout({
         className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased selection:bg-sky-500 selection:text-white"
         suppressHydrationWarning
       >
-        <LanguageProvider initialLocale={initialLocale}>
-          <Header />
+        <LanguageProvider initialLocale={initialLocale} company={companyProfile}>
+          <Header company={companyProfile} />
           <main className="flex-grow">{children}</main>
-          <Footer />
-          <MobileStickyBar />
+          <Footer company={companyProfile} />
+          <MobileStickyBar company={companyProfile} />
         </LanguageProvider>
       </body>
     </html>

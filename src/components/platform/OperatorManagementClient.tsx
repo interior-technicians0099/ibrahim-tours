@@ -166,7 +166,7 @@ export default function OperatorManagementClient({ operators, globalRate }: Prop
               <span>Add Operator</span>
             </button>
             <div className="absolute right-0 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-slate-800 text-[11px] text-slate-300 rounded-xl shadow-xl border border-slate-700 z-30 pointer-events-none text-center">
-              Multi-operator onboarding is coming in v3.1. Ibrahim Tours is currently the exclusive lead operator.
+              Multi-operator onboarding is coming in future phases. Zansafari Horizon is currently the exclusive lead operator.
             </div>
           </div>
         </div>

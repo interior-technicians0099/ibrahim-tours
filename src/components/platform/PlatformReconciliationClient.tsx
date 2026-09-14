@@ -458,7 +458,7 @@ export default function PlatformReconciliationClient({
                   rows={2}
                   value={costNotes}
                   onChange={(e) => setCostNotes(e.target.value)}
-                  placeholder="e.g. Verified with Ibrahim: boat fuel + marine park fee"
+                  placeholder="e.g. Verified with lead operator: boat fuel + marine park fee"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 />
               </div>

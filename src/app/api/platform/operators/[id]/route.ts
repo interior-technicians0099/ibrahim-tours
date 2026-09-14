@@ -16,7 +16,7 @@ export async function PATCH(
     const user = await requireRole([Role.PLATFORM_ADMIN]);
     const { id: operatorId } = await context.params;
 
-    const operator = await prisma.operatorProfile.findUnique({
+    const operator = await prisma.companyProfile.findUnique({
       where: { id: operatorId },
     });
 
@@ -53,7 +53,7 @@ export async function PATCH(
       }
     }
 
-    const updated = await prisma.operatorProfile.update({
+    const updated = await prisma.companyProfile.update({
       where: { id: operatorId },
       data: {
         ...(commissionRate !== undefined ? { commissionRate: normalizedRate } : {}),

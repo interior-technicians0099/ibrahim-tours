@@ -28,7 +28,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { reference } = await params;
   return {
-    title: `Booking Request ${reference} | Ibrahim Tours Zanzibar`,
+    title: `Booking Request ${reference} | Zansafari Horizon`,
     description: `Booking request summary and payment instructions for reference ${reference}.`,
     robots: {
       index: false,
@@ -50,6 +50,7 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
       transportService: true,
       route: true,
       operator: true,
+      receipt: true,
     },
   });
 
@@ -81,14 +82,16 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
     );
   }
 
-  // Fetch operator profile for payment instructions
-  const rawOperator = booking.operator || (await prisma.operatorProfile.findFirst());
+  // Fetch company profile for payment instructions
+  const rawOperator = booking.operator || (await prisma.companyProfile.findFirst());
   const operator = rawOperator as {
+    companyName?: string | null;
     paymentInstructions?: string | null;
     paymentNotes?: string | null;
     mpesaNumber?: string | null;
     bankName?: string | null;
     bankAccount?: string | null;
+    officialWhatsapp?: string | null;
     whatsapp?: string | null;
   } | null;
 
@@ -117,8 +120,8 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
     .replace('{service}', serviceTitle)
     .replace('{date}', formattedDate);
 
-  const rawPhone = operator?.whatsapp || '+255777123456';
-  const cleanPhone = rawPhone.replace(/[^0-9]/g, '') || '255777123456';
+  const rawPhone = operator?.officialWhatsapp || operator?.whatsapp || '+255618769150';
+  const cleanPhone = rawPhone.replace(/[^0-9]/g, '') || '255618769150';
   const whatsAppUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(rawWhatsAppMsg)}`;
 
   return (
@@ -165,18 +168,50 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Notice: Request Not Confirmed */}
-          <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 flex items-start gap-3.5">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-xs sm:text-sm leading-relaxed">
-              <strong className="block text-amber-300 font-bold mb-0.5">
-                {dict.confirmation.alertTitle}
-              </strong>
-              <span>
-                {dict.confirmation.alertDesc}
-              </span>
+          {/* Receipt Issued Banner OR Pending Payment Alert */}
+          {booking.receipt ? (
+            <div className="mt-6 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-slate-900 border-2 border-emerald-500/40 text-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold uppercase tracking-wider border border-emerald-500/30">
+                    Paid in Full & Confirmed
+                  </span>
+                  <span className="text-xs text-slate-400 font-mono">
+                    Receipt: <strong className="text-emerald-300">{booking.receipt.receiptNumber}</strong>
+                  </span>
+                </div>
+                <div className="text-sm font-bold text-white flex items-center gap-2 pt-1">
+                  <span>Tour Day Uhakiki Code:</span>
+                  <span className="font-mono text-lg text-emerald-400 tracking-wider bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">
+                    {booking.receipt.verificationCode}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Your official branded tax receipt has been generated. Present this verification code to your guide on tour day.
+                </p>
+              </div>
+
+              <Link
+                href={`/receipt/${booking.receipt.receiptNumber}`}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wide shadow-md transition-all shrink-0"
+              >
+                <FileText className="w-4 h-4" />
+                <span>View & Print Official Receipt</span>
+              </Link>
             </div>
-          </div>
+          ) : (
+            <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 flex items-start gap-3.5">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm leading-relaxed">
+                <strong className="block text-amber-300 font-bold mb-0.5">
+                  {dict.confirmation.alertTitle}
+                </strong>
+                <span>
+                  {dict.confirmation.alertDesc}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 2-Column Details Grid */}
@@ -328,7 +363,7 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
                 className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-900/40 transition-all"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>{dict.confirmation.chatWithIbrahim}</span>
+                <span>{dict.confirmation.chatWithCompany}</span>
               </a>
               <span className="text-[11px] text-slate-400 block font-mono">
                 {dict.confirmation.prefillRefNote.replace('{ref}', booking.referenceCode)}

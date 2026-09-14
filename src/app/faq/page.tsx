@@ -14,7 +14,7 @@ import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
-  const { t } = useLanguage();
+  const { t, getLocalizedWhatsAppLink } = useLanguage();
 
   const toggleFaq = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
@@ -133,7 +133,7 @@ export default function FAQPage() {
           </div>
 
           <a
-            href={getWhatsAppLink(faqWhatsAppMsg)}
+            href={getLocalizedWhatsAppLink('faq')}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-sm shadow-xl shadow-emerald-600/30 transition-all shrink-0 hover:scale-105 active:scale-95"

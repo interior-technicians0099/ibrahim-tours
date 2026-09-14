@@ -40,9 +40,9 @@ export interface TourFormData {
 }
 
 export async function saveTourAction(data: TourFormData) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
-  const effectiveOperatorId = scopedOperatorId || (await prisma.operatorProfile.findFirst())?.id || 'operator-ibrahim';
+  const effectiveOperatorId = scopedOperatorId || (await prisma.companyProfile.findFirst())?.id || 'operator-ibrahim';
 
   const cleanSlug = data.slug
     .trim()

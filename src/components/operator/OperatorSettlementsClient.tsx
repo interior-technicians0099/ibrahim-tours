@@ -76,7 +76,7 @@ export default function OperatorSettlementsClient({
   // Export Settlements List
   const handleExportList = () => {
     exportToCsv(
-      `ibrahim-tours-settlements-${new Date().toISOString().slice(0, 10)}`,
+      `zansafari-settlements-${new Date().toISOString().slice(0, 10)}`,
       settlements,
       [
         { header: 'Period', key: 'month' },
@@ -121,7 +121,7 @@ export default function OperatorSettlementsClient({
     const drillBookings = contributingBookings.filter((b) => b.month === settlement.month);
 
     exportToCsv(
-      `statement-${settlement.month}-ibrahim-tours`,
+      `statement-${settlement.month}-zansafari-horizon`,
       drillBookings,
       [
         { header: 'Booking Ref', key: 'referenceCode' },

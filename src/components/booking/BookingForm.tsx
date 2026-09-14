@@ -28,6 +28,24 @@ import { ALL_TOURS, TRANSFER_ROUTES, OPERATOR } from '@/lib/constants';
 import { formatPrice, getWhatsAppLink } from '@/lib/utils';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 
+export interface LanguageOption {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+  guideTitle: string;
+}
+
+export const AVAILABLE_LANGUAGES: LanguageOption[] = [
+  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧', guideTitle: 'English Tour Guide' },
+  { code: 'fr', name: 'French', nativeName: 'Français', flag: '🇫🇷', guideTitle: 'Guide Francophone' },
+  { code: 'it', name: 'Italian', nativeName: 'Italiano', flag: '🇮🇹', guideTitle: 'Guida Italiana' },
+  { code: 'de', name: 'German', nativeName: 'Deutsch', flag: '🇩🇪', guideTitle: 'Deutschsprachiger Guide' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español', flag: '🇪🇸', guideTitle: 'Guía de Habla Hispana' },
+  { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili', flag: '🇹🇿', guideTitle: 'Mwongozo wa Kiswahili' },
+  { code: 'ar', name: 'Arabic', nativeName: 'العربية', flag: '🇸🇦', guideTitle: 'مرشد سياحي باللغة العربية' },
+];
+
 export default function BookingForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -37,8 +55,13 @@ export default function BookingForm() {
   const queryRoute = searchParams.get('route') || searchParams.get('transfer');
 
   // Mode: 'tour' or 'transport'
+  const isInitialTransport =
+    queryType === 'transport' ||
+    queryType === 'transfer' ||
+    Boolean(queryRoute);
+
   const [bookingType, setBookingType] = useState<'tour' | 'transport'>(
-    queryType === 'transport' || queryRoute ? 'transport' : 'tour'
+    isInitialTransport ? 'transport' : 'tour'
   );
 
   // Tour form state
@@ -71,6 +94,7 @@ export default function BookingForm() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState('United Kingdom');
+  const [preferredLanguage, setPreferredLanguage] = useState<string>(() => locale || 'en');
   const [specialRequests, setSpecialRequests] = useState('');
 
   // Validation & Submission
@@ -83,16 +107,45 @@ export default function BookingForm() {
   const [referenceCode, setReferenceCode] = useState('');
   const [copied, setCopied] = useState(false);
 
+  // Switch service type with instant client state and safe URL reflection
+  const handleSelectServiceType = (type: 'tour' | 'transport') => {
+    setBookingType(type);
+    if (typeof window !== 'undefined') {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('type', type);
+        if (type === 'transport') {
+          url.searchParams.delete('tour');
+        } else {
+          url.searchParams.delete('route');
+          url.searchParams.delete('transfer');
+        }
+        window.history.replaceState(null, '', url.pathname + url.search);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
   // Sync with searchParams if they arrive/change
   useEffect(() => {
-    if (queryType === 'transport' || queryRoute) {
+    const isTransportQuery =
+      queryType === 'transport' ||
+      queryType === 'transfer' ||
+      Boolean(queryRoute);
+
+    if (isTransportQuery) {
       setBookingType('transport');
       if (queryRoute) {
+        const q = queryRoute.toLowerCase();
         const found = TRANSFER_ROUTES.find(
           (r) =>
-            r.id === queryRoute ||
-            r.origin.toLowerCase().includes(queryRoute.toLowerCase()) ||
-            r.destination.toLowerCase().includes(queryRoute.toLowerCase())
+            r.id.toLowerCase() === q ||
+            q.includes(r.id.toLowerCase()) ||
+            q.includes(r.origin.toLowerCase()) ||
+            q.includes(r.destination.toLowerCase()) ||
+            r.origin.toLowerCase().includes(q) ||
+            r.destination.toLowerCase().includes(q)
         );
         if (found) {
           setSelectedRouteId(found.id);
@@ -102,8 +155,12 @@ export default function BookingForm() {
       }
     } else if (queryTour) {
       setBookingType('tour');
+      const q = queryTour.toLowerCase();
       const foundTour = ALL_TOURS.find(
-        (t) => t.slug === queryTour || t.title.toLowerCase().includes(queryTour.toLowerCase())
+        (t) =>
+          t.slug.toLowerCase() === q ||
+          t.title.toLowerCase().includes(q) ||
+          q.includes(t.slug.toLowerCase())
       );
       if (foundTour) {
         setSelectedTourSlug(foundTour.slug);
@@ -131,6 +188,20 @@ export default function BookingForm() {
     () => TRANSFER_ROUTES.find((r) => r.id === selectedRouteId) || TRANSFER_ROUTES[0],
     [selectedRouteId]
   );
+
+  // Keep preferred language synced with site locale if user switches site language
+  useEffect(() => {
+    if (locale && AVAILABLE_LANGUAGES.some((l) => l.code === locale)) {
+      setPreferredLanguage(locale);
+    }
+  }, [locale]);
+
+  const selectedLanguageObj = useMemo(() => {
+    return (
+      AVAILABLE_LANGUAGES.find((l) => l.code === preferredLanguage) ||
+      AVAILABLE_LANGUAGES[0]
+    );
+  }, [preferredLanguage]);
 
   // Live estimated starting price
   const estimatedPrice = useMemo(() => {
@@ -221,7 +292,8 @@ export default function BookingForm() {
             phone,
             country,
             specialRequests,
-            locale,
+            locale: selectedLanguageObj.code,
+            preferredLanguage: selectedLanguageObj.name,
             honeypot,
           }
           : {
@@ -238,7 +310,8 @@ export default function BookingForm() {
             phone,
             country,
             specialRequests,
-            locale,
+            locale: selectedLanguageObj.code,
+            preferredLanguage: selectedLanguageObj.name,
             honeypot,
           };
 
@@ -264,7 +337,7 @@ export default function BookingForm() {
     } catch (err: any) {
       setApiError(
         err?.message ||
-        'A network error occurred. Please check your connection or contact Ibrahim directly on WhatsApp.'
+        'A network error occurred. Please check your connection or contact our team directly on WhatsApp.'
       );
       setIsSubmitting(false);
     }
@@ -272,10 +345,11 @@ export default function BookingForm() {
 
   const compiledWhatsAppText = useMemo(() => {
     if (bookingType === 'tour') {
-      return `Hello Ibrahim! I have submitted a Tour Booking Request:
+      return `Hello Zansafari Horizon! I have submitted a Tour Booking Request:
 • Ref: ${referenceCode}
 • Tour: ${currentTour.title}
 • Date: ${tourDate} (${tourTime})
+• Guide Language: ${selectedLanguageObj.flag} ${selectedLanguageObj.name} (${selectedLanguageObj.nativeName})
 • Guests: ${adults} Adults, ${children} Children
 • Hotel / Pickup: ${hotelLocation}
 • Guest Name: ${fullName} (${country})
@@ -284,10 +358,11 @@ export default function BookingForm() {
 
 Please confirm availability and booking details!`;
     } else {
-      return `Hello Ibrahim! I have submitted a Transfer Booking Request:
+      return `Hello Zansafari Horizon! I have submitted a Transfer Booking Request:
 • Ref: ${referenceCode}
 • Route: ${pickupLocation} → ${dropoffLocation}
 • Date: ${transportDate} (${transportTime})
+• Language: ${selectedLanguageObj.flag} ${selectedLanguageObj.name} (${selectedLanguageObj.nativeName})
 • Passengers: ${passengers} (${luggageCount})
 • Guest Name: ${fullName} (${country})
 • WhatsApp: ${phone}
@@ -301,6 +376,7 @@ Please confirm driver dispatch and booking details!`;
     currentTour,
     tourDate,
     tourTime,
+    selectedLanguageObj,
     adults,
     children,
     hotelLocation,
@@ -334,7 +410,7 @@ Please confirm driver dispatch and booking details!`;
             Full Payment Required to Confirm
           </strong>
           <span className="text-amber-900 leading-relaxed">
-            This form is a booking request, not an instant credit-card charge. Ibrahim Tours Zanzibar will personally contact you via WhatsApp or Email to confirm availability and schedule. You will receive an M-Pesa number or Bank Transfer details to make your full payment once availability is confirmed.
+            This form is a booking request, not an instant credit-card charge. Zansafari Horizon will personally contact you via WhatsApp or Email to confirm availability and schedule. You will receive an M-Pesa number or Bank Transfer details to make your full payment once availability is confirmed.
           </span>
         </div>
       </div>
@@ -474,13 +550,11 @@ Please confirm driver dispatch and booking details!`;
               <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
                 <button
                   type="button"
-                  onClick={() => {
-                    setBookingType('tour');
-                    router.replace('/book?type=tour', { scroll: false });
-                  }}
-                  className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${bookingType === 'tour'
-                      ? 'bg-white text-sky-700 shadow-md'
-                      : 'text-slate-600 hover:text-slate-900'
+                  id="tab-service-tours"
+                  onClick={() => handleSelectServiceType('tour')}
+                  className={`py-3.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation min-h-[44px] ${bookingType === 'tour'
+                      ? 'bg-white text-sky-700 shadow-md ring-1 ring-black/5'
+                      : 'text-slate-600 hover:text-slate-900 active:bg-slate-200/60'
                     }`}
                 >
                   <Compass className="w-4 h-4" />
@@ -489,13 +563,11 @@ Please confirm driver dispatch and booking details!`;
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setBookingType('transport');
-                    router.replace('/book?type=transport', { scroll: false });
-                  }}
-                  className={`py-3 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 ${bookingType === 'transport'
-                      ? 'bg-white text-sky-700 shadow-md'
-                      : 'text-slate-600 hover:text-slate-900'
+                  id="tab-service-transfers"
+                  onClick={() => handleSelectServiceType('transport')}
+                  className={`py-3.5 px-4 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer touch-manipulation min-h-[44px] ${bookingType === 'transport'
+                      ? 'bg-white text-sky-700 shadow-md ring-1 ring-black/5'
+                      : 'text-slate-600 hover:text-slate-900 active:bg-slate-200/60'
                     }`}
                 >
                   <Car className="w-4 h-4" />
@@ -546,6 +618,27 @@ Please confirm driver dispatch and booking details!`;
                       {ALL_TOURS.map((t) => (
                         <option key={t.id} value={t.slug}>
                           {t.title} ({t.duration} • {t.category})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="select-tour-language"
+                      className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
+                    >
+                      Choose Tour Guide Language *
+                    </label>
+                    <select
+                      id="select-tour-language"
+                      value={preferredLanguage}
+                      onChange={(e) => setPreferredLanguage(e.target.value)}
+                      className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                      {AVAILABLE_LANGUAGES.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.flag} {lang.name} — {lang.nativeName} ({lang.guideTitle})
                         </option>
                       ))}
                     </select>
@@ -691,6 +784,27 @@ Please confirm driver dispatch and booking details!`;
                       {TRANSFER_ROUTES.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.origin} → {r.destination} (Est. {r.durationEstimate})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="select-transport-language"
+                      className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5"
+                    >
+                      Choose Driver & Communication Language *
+                    </label>
+                    <select
+                      id="select-transport-language"
+                      value={preferredLanguage}
+                      onChange={(e) => setPreferredLanguage(e.target.value)}
+                      className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 font-bold text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                      {AVAILABLE_LANGUAGES.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.flag} {lang.name} — {lang.nativeName} ({lang.guideTitle})
                         </option>
                       ))}
                     </select>
@@ -970,7 +1084,7 @@ Please confirm driver dispatch and booking details!`;
                     className="mt-1 w-4 h-4 rounded text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer"
                   />
                   <span className="text-xs text-slate-600 leading-relaxed select-none">
-                    I agree to the processing of my contact and booking details by Ibrahim Tours Zanzibar in accordance with the{' '}
+                    I agree to the processing of my contact and booking details by Zansafari Horizon in accordance with the{' '}
                     <Link
                       href="/privacy"
                       target="_blank"
@@ -1084,6 +1198,13 @@ Please confirm driver dispatch and booking details!`;
                     {bookingType === 'tour'
                       ? `${adults} Adults${children !== '0' ? `, ${children} Children` : ''}`
                       : `${passengers} Passengers (${luggageCount})`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">{bookingType === 'tour' ? 'Guide Language:' : 'Language:'}</span>
+                  <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                    <span>{selectedLanguageObj.flag}</span>
+                    <span>{selectedLanguageObj.name}</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between">

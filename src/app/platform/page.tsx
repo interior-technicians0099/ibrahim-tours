@@ -108,7 +108,7 @@ export default async function PlatformDashboardPage() {
         ? b.tour?.title || 'Tour Excursion'
         : `${b.pickupLocation || 'Pickup'} → ${b.dropoffLocation || 'Drop-off'}`,
     customerName: b.customerName,
-    operatorName: b.operator?.name || b.operator?.businessName || 'Ibrahim Tours',
+    operatorName: b.operator?.companyName || b.operator?.businessName || b.operator?.name || 'Zansafari Horizon',
     bookingDate: new Date(b.bookingDate).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',

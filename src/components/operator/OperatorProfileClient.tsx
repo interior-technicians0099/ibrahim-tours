@@ -16,6 +16,8 @@ import {
   Languages,
   CreditCard,
   Calendar,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react';
 import MediaManager, { MediaItem } from '@/components/operator/MediaManager';
 
@@ -174,6 +176,33 @@ export default function OperatorProfileClient({ initialProfile }: Props) {
             <span>{saveError}</span>
           </div>
         )}
+
+        {/* Quick Link to Website Branding & Logo */}
+        <div className="bg-gradient-to-r from-emerald-500/10 via-slate-900/80 to-amber-500/10 border border-emerald-500/30 rounded-3xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 shadow-lg shadow-emerald-500/20">
+              <Sparkles className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-white">Company Branding & Website Logo</h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  Site-Wide
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Upload company logo for the website header/footer, update company brand name, tagline, and legal registration.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/operator/branding"
+            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all shrink-0 active:scale-95"
+          >
+            <span>Branding & Logo Settings</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* 1. Profile Photo & Identity */}

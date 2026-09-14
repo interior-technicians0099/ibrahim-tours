@@ -67,7 +67,7 @@ export async function runMonthlySettlementForOperator(
 ): Promise<SettlementSummary> {
   const { startDate, endDate } = getMonthDateRange(month);
 
-  const operator = await prisma.operatorProfile.findUnique({
+  const operator = await prisma.companyProfile.findUnique({
     where: { id: operatorId },
   });
 
@@ -284,7 +284,7 @@ export async function runAllMonthlySettlements(
   month: string,
   adminUserId?: string
 ): Promise<SettlementSummary[]> {
-  const operators = await prisma.operatorProfile.findMany();
+  const operators = await prisma.companyProfile.findMany();
   const results: SettlementSummary[] = [];
 
   for (const op of operators) {

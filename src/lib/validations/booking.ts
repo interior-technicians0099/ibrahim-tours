@@ -18,7 +18,8 @@ const BaseBookingSchema = z.object({
     .max(30, 'Phone number is too long'),
   country: z.string().trim().optional().default('United Kingdom'),
   specialRequests: z.string().trim().max(1000, 'Special requests cannot exceed 1000 characters').optional().default(''),
-  locale: z.enum(['en', 'fr', 'es', 'it', 'de', 'ar']).optional().default('en'),
+  locale: z.enum(['en', 'fr', 'es', 'it', 'de', 'ar', 'sw']).optional().default('en'),
+  preferredLanguage: z.string().optional().default('English'),
   tier: z.string().optional(),
   honeypot: z.string().optional().default(''),
 });

@@ -150,5 +150,13 @@ pg_dump "$DATABASE_URL" --format=custom --no-owner --no-privileges --file="backu
 | **B6.5 Audit & GDPR** | Consent checkbox required on `/book` and `/contact` | **PASS** |
 | **B6.6 Monitoring** | Sentry exception capture on email delivery failure | **PASS** |
 | **B6.6 Monitoring** | `/api/health` returns healthy DB ping & latency | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | Sequential Receipt Generation (`ZSH-YYYY-000001`) | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | 6-Char Crypto Verification Code (Unambiguous, no 0/1/O/I) | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | Scannable QR Code generation (`data:image/png;base64,...`) | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | Public Printable Receipt Page (`/receipt/[receiptNumber]`) | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | Tour-Day Uhakiki Modal & Admin Check-in (`TOURIST_CHECKED_IN` audit log) | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | Platform Receipts Ledger (`/platform/receipts`) & CSV Export | **PASS** |
+| **Phase R3 Receipt & Uhakiki** | Financial Privacy Invariant: Zero cost/profit/commission leakage | **PASS** |
 | **Regression Suites** | TypeScript compiler clean (`npx tsc --noEmit`) | **PASS** |
-| **Regression Suites** | B0, B4, B5 automated suites pass | **PASS** |
+| **Regression Suites** | B0, B4, B5, R3 automated suites pass (`test-phase-r3.ts`) | **PASS** |
+

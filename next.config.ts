@@ -40,7 +40,18 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['10.101.73.221', 'localhost', '127.0.0.1'],
+  allowedDevOrigins: [
+    '192.168.1.103',
+    '192.168.1.103:3000',
+    '10.56.155.221',
+    '10.56.155.221:3000',
+    '10.254.75.221',
+    '10.101.73.221',
+    'localhost',
+    'localhost:3000',
+    '127.0.0.1',
+    '127.0.0.1:3000',
+  ],
   images: {
     remotePatterns: [
       {
@@ -54,9 +65,12 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    if (isDev) {
+      return []; // Do not restrict dev HMR and script loading in development
+    }
     return [
       {
-        // Apply security headers to all routes
+        // Apply security headers to all routes in production
         source: "/:path*",
         headers: securityHeaders,
       },

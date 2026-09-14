@@ -121,7 +121,7 @@ export default function LanguageSelector({
         <div
           role="listbox"
           aria-label={t('common.selectLanguage')}
-          className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-52 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-900/10 p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150 focus:outline-none"
+          className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-52 rounded-2xl bg-white border border-slate-200 shadow-xl shadow-slate-900/10 p-1.5 z-50 transition-all duration-150 focus:outline-none"
         >
           <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100 mb-1">
             {t('common.selectLanguage')}

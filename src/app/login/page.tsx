@@ -37,7 +37,7 @@ function LoginForm() {
           setIsRateLimited(true);
           setErrorMessage(err);
         } else {
-          setErrorMessage("Invalid email or password. Please verify your credentials and try again.");
+          setErrorMessage("Barua pepe au nenosiri sio sahihi. Tafadhali hakiki taarifa zako (Invalid email or password).");
         }
         setIsLoading(false);
         return;
@@ -47,18 +47,30 @@ function LoginForm() {
       const sessionRes = await fetch("/api/auth/session");
       const session = await sessionRes.json();
 
+      let target = "/operator";
       if (session?.user?.mustChangePassword) {
-        router.push("/change-password");
+        target = "/change-password";
       } else if (callbackUrl && !callbackUrl.startsWith("/change-password")) {
-        router.push(callbackUrl);
+        try {
+          if (callbackUrl.startsWith("http")) {
+            const parsed = new URL(callbackUrl);
+            target = parsed.pathname + parsed.search;
+          } else {
+            target = callbackUrl;
+          }
+        } catch {
+          target = session?.user?.role === "PLATFORM_ADMIN" ? "/platform" : "/operator";
+        }
       } else if (session?.user?.role === "PLATFORM_ADMIN") {
-        router.push("/platform");
+        target = "/platform";
       } else {
-        router.push("/operator");
+        target = "/operator";
       }
-      router.refresh();
+
+      // Use full navigation so cookies attach immediately to all server requests
+      window.location.href = target;
     } catch (err: unknown) {
-      setErrorMessage(err instanceof Error ? err.message : "An unexpected error occurred during sign-in.");
+      setErrorMessage(err instanceof Error ? err.message : "Hitilafu imetokea wakati wa kuingia.");
       setIsLoading(false);
     }
   }
@@ -72,7 +84,7 @@ function LoginForm() {
             <Compass className="w-8 h-8 animate-spin-slow" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">
-            Ibrahim Tours Portal
+            Zansafari Horizon Portal
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
             Authorized administrative & operator access
@@ -98,7 +110,7 @@ function LoginForm() {
         )}
 
         {/* Login Form */}
-        <form onSubmit={handleSubmit} method="POST" className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
               Email Address
@@ -111,7 +123,7 @@ function LoginForm() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@ibrahimtours.co.tz"
+                placeholder="admin@zansafarihorizon.com"
                 className="w-full h-12 pl-11 pr-4 rounded-xl bg-slate-800/90 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all text-sm"
               />
             </div>
@@ -159,8 +171,50 @@ function LoginForm() {
           </button>
         </form>
 
+        {/* Quick Demo Credentials Helper */}
+        <div className="mt-6 p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-xs">
+          <p className="font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
+            <span>🔑</span> Bofya kutumia akaunti (Quick Select):
+          </p>
+          <div className="grid grid-cols-1 gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("admin@zansafarihorizon.com");
+                setPassword("AdminPass123!");
+              }}
+              className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-emerald-950/60 border border-slate-700/50 hover:border-emerald-500/40 transition-colors flex items-center justify-between"
+            >
+              <span className="text-emerald-400 font-mono text-[11px]">admin@zansafarihorizon.com</span>
+              <span className="text-[10px] text-slate-400 font-medium">Platform Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("manager@zansafarihorizon.com");
+                setPassword("Zansafari2026!");
+              }}
+              className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-emerald-950/60 border border-slate-700/50 hover:border-emerald-500/40 transition-colors flex items-center justify-between"
+            >
+              <span className="text-teal-400 font-mono text-[11px]">manager@zansafarihorizon.com</span>
+              <span className="text-[10px] text-slate-400 font-medium">Company Admin</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEmail("operator@zansafarihorizon.com");
+                setPassword("Zansafari2026!");
+              }}
+              className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900/80 hover:bg-emerald-950/60 border border-slate-700/50 hover:border-emerald-500/40 transition-colors flex items-center justify-between"
+            >
+              <span className="text-sky-400 font-mono text-[11px]">operator@zansafarihorizon.com</span>
+              <span className="text-[10px] text-slate-400 font-medium">Operator</span>
+            </button>
+          </div>
+        </div>
+
         {/* Security Notice */}
-        <div className="mt-8 pt-6 border-t border-slate-800/80 text-center space-y-2">
+        <div className="mt-6 pt-5 border-t border-slate-800/80 text-center space-y-2">
           <p className="text-[11px] text-slate-500">
             Protected by argon2id cryptographic hashing & rate-limiting.
           </p>

@@ -10,21 +10,24 @@ import {
 } from './types';
 
 export const OPERATOR: Operator = {
-  name: 'Ibrahim',
-  businessName: 'Ibrahim Tours Zanzibar',
-  tagline: 'Your Trusted Guide to Paradise Island',
+  name: 'Zansafari Horizon',
+  businessName: 'Zansafari Horizon Tours & Safaris Ltd',
+  tagline: 'Spice • Culture • Wildlife',
   experience: '10+ years',
-  languages: ['English', 'Swahili', 'Italian'],
-  phone: '+255700000000',
-  whatsapp: '255700000000',
-  email: 'info@ibrahimtours.co.tz',
+  languages: ['English', 'Swahili', 'Italian', 'French', 'German'],
+  phone: '+255 618 769 150',
+  whatsapp: '255618769150',
+  email: 'info@zansafarihorizon.com',
   location: 'Stone Town, Zanzibar, Tanzania',
+  registrationNumber: 'ZNZ-BR-2024-00892',
+  traLicenseNumber: 'TRA-ZNZ-2024-8841',
+  logoUrl: '/branding/zansafari-logo.png',
   trustPoints: [
-    'Local licensed guide & native islander',
-    '10+ years of 5-star experience',
-    'Fluent in English, Swahili & Italian',
-    'Direct instant WhatsApp booking & fast support',
-    'Transparent pricing with zero hidden fees',
+    'Fully registered Zanzibar tour company & TRA licensed',
+    'Expert licensed guides & local native specialists',
+    'Multilingual team: English, Swahili, Italian, French, German',
+    'Direct instant WhatsApp booking & 24/7 dedicated support',
+    'Transparent corporate pricing with zero hidden fees',
   ],
 };
 
@@ -242,7 +245,7 @@ export const ALL_TOURS: Tour[] = [
       'All 3 top attractions in one seamless day',
       'Grilled seafood feast (lobster, calamari, fish)',
       'Rich culture + exotic wildlife + ocean relaxation',
-      'All transfer logistics taken care of by Ibrahim',
+      'All transfer logistics taken care of by our operations team',
     ],
     image: '/images/tours/Stonetown/ZOM_0097.JPG-300kb.jpg',
     featured: true,
@@ -356,7 +359,7 @@ export const ALL_TOURS: Tour[] = [
       'Evening dhow sunset cruise',
       'All roundtrip hotel transfers in private AC vehicle',
       'Tropical fruits, refreshments & soft drinks',
-      'Full-day private guide with Ibrahim',
+      'Full-day private guide with certified Zanzibar specialist',
     ],
     highlights: [
       'Mnemba dolphin swim & coral reef snorkeling',
@@ -473,7 +476,7 @@ export const ALL_TOURS: Tour[] = [
       'Salaam Cave entrance fee & turtle feeding',
       'Michamvi / The Rock Restaurant transfer',
       'Roundtrip hotel transfers in private AC vehicle',
-      'Professional guide with Ibrahim',
+      'Professional guide with certified Zanzibar specialist',
       'Soft drinks & mineral water',
     ],
     highlights: [
@@ -772,7 +775,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     tourTitle: 'Safari Blue & Stone Town Full Day',
     content:
-      'Booking with Ibrahim made our Zanzibar holiday seamless and unforgettable! He met us on time with a clean AC van, shared amazing stories about Stone Town, and the Safari Blue seafood lunch was simply out of this world. Booking through WhatsApp was instant and stress-free.',
+      'Booking with Zansafari Horizon made our Zanzibar holiday seamless and unforgettable! Their team met us on time with a clean AC van, shared amazing stories about Stone Town, and the Safari Blue seafood lunch was simply out of this world. Booking through WhatsApp was instant and stress-free.',
     date: 'February 2026',
   },
   {
@@ -782,7 +785,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     tourTitle: 'Mnemba Island & Spice Tour',
     content:
-      'Ibrahim parla un ottimo italiano ed è stato una guida fantastica per tutta la nostra famiglia! Abbiamo nuotato con i delfini a Mnemba e visitato le piantagioni di spezie. Prezzi chiarissimi, nessun costo nascosto e puntualità svizzera. Consigliatissimo a tutti gli italiani!',
+      'Il team di Zansafari Horizon parla un ottimo italiano ed è stato fantastico per tutta la nostra famiglia! Abbiamo nuotato con i delfini a Mnemba e visitato le piantagioni di spezie. Prezzi chiarissimi, nessun costo nascosto e puntualità perfetta. Consigliatissimo a tutti gli italiani!',
     date: 'January 2026',
   },
   {
@@ -792,7 +795,7 @@ export const REVIEWS: Review[] = [
     rating: 5,
     tourTitle: 'Airport Transfers & Jozani Forest',
     content:
-      'We booked both airport transfers and the Jozani Forest tour with Ibrahim. Communication on WhatsApp was super quick, driver was waiting right at the arrivals terminal with a name sign, and seeing the Red Colobus monkeys was magical. 10/10 service!',
+      'We booked both airport transfers and the Jozani Forest tour with Zansafari Horizon. Communication on WhatsApp was super quick, driver was waiting right at the arrivals terminal with a name sign, and seeing the Red Colobus monkeys was magical. 10/10 service!',
     date: 'December 2025',
   },
 ];
@@ -802,28 +805,28 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: 'faq-1',
     question: 'Do I pay online when submitting a booking request?',
     answer:
-      'No, there is NO online payment required on this website. When you submit a booking request or message Ibrahim on WhatsApp, your dates and details are reviewed and confirmed manually. Payment is made off-platform in person (Cash in USD, EUR, GBP, or TZS, M-Pesa, or direct bank transfer) upon meeting your guide/driver.',
+      'No, there is NO online payment required on this website. When you submit a booking request or message Zansafari Horizon on WhatsApp, your dates and details are reviewed and confirmed manually. Full payment via company M-Pesa or direct bank transfer is made upon confirmation to secure your booking.',
     category: 'Booking & Payment',
   },
   {
     id: 'faq-2',
     question: 'How is my booking confirmed?',
     answer:
-      'Once you submit a request form or send a WhatsApp message, Ibrahim personally verifies availability and responds within a short time with full pickup details, vehicle assignment, and your final voucher confirmation.',
+      'Once you submit a request form or send a WhatsApp message, our operations team verifies availability and responds within 1 hour with full pickup details, vehicle assignment, and your formal voucher confirmation.',
     category: 'Booking & Payment',
   },
   {
     id: 'faq-3',
     question: 'Can I book directly via WhatsApp?',
     answer:
-      'Yes, absolutely! WhatsApp is the fastest and most convenient method. You can click any of our "Chat on WhatsApp" buttons with prefilled tour or transfer details, and Ibrahim will assist you immediately in English, Italian, or Swahili.',
+      'Yes, absolutely! WhatsApp is the fastest and most convenient method. You can click any of our "Chat on WhatsApp" buttons with prefilled tour or transfer details, and our team will assist you immediately in English, Italian, French, German, or Swahili.',
     category: 'Booking & Payment',
   },
   {
     id: 'faq-4',
     question: 'What payment methods do you accept?',
     answer:
-      'We accept Cash (US Dollars printed after 2009, Euros, British Pounds, and Tanzanian Shillings), Vodacom M-Pesa mobile money, and local/international bank transfers.',
+      'We accept Vodacom M-Pesa mobile money and local/international bank transfers (CRDB Bank Zanzibar). Official invoice numbers and payment accounts are issued upon confirmation.',
     category: 'Payment',
   },
   {
@@ -837,14 +840,14 @@ export const FAQ_ITEMS: FaqItem[] = [
     id: 'faq-6',
     question: 'Can I customize a tour or combine multiple destinations?',
     answer:
-      'Yes! Because Ibrahim is a private operator, we can tailor custom combos to suit your schedule and interests (e.g. combining Jozani Forest, Spice Farm, and The Rock Restaurant in a single day). Simply let us know your preferred itinerary on WhatsApp.',
+      'Yes! Because Zansafari Horizon operates private tours, we can tailor custom combos to suit your schedule and interests (e.g. combining Jozani Forest, Spice Farm, and The Rock Restaurant in a single day). Simply let us know your preferred itinerary on WhatsApp.',
     category: 'Tours',
   },
   {
     id: 'faq-7',
     question: 'What happens after I submit a booking request on the site?',
     answer:
-      'We receive your details immediately. Ibrahim checks driver and boat availability for your requested date and contacts you directly via WhatsApp or Email to confirm meeting time, hotel pickup location, and final pricing.',
+      'We receive your details immediately. Our operations desk checks driver and boat availability for your requested date and contacts you directly via WhatsApp or Email to confirm meeting time, hotel pickup location, and final pricing.',
     category: 'Booking & Payment',
   },
 ];

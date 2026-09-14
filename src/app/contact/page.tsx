@@ -20,8 +20,15 @@ import {
 } from 'lucide-react';
 import { OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink } from '@/lib/utils';
+import { useLanguage } from '@/lib/i18n/LanguageContext';
 
 export default function ContactPage() {
+  const { getLocalizedWhatsAppLink, company } = useLanguage();
+  const brandWhatsapp = company?.officialWhatsapp || company?.whatsapp || OPERATOR.whatsapp;
+  const brandPhone = company?.officialPhone || company?.phone || OPERATOR.phone;
+  const brandEmail = company?.officialEmail || company?.email || OPERATOR.email;
+  const brandLocation = company?.location || OPERATOR.location;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -70,12 +77,14 @@ export default function ContactPage() {
     }
   };
 
+  const brandName = company?.companyName || company?.businessName || OPERATOR.name;
   const dynamicWhatsAppLink = getWhatsAppLink(
     name
-      ? `Hello Ibrahim! My name is ${name}. Phone: ${phone || 'N/A'}. Email: ${email || 'N/A'}. Message: ${
+      ? `Hello ${brandName}! My name is ${name}. Phone: ${phone || 'N/A'}. Email: ${email || 'N/A'}. Message: ${
           message || 'I would like to inquire about tours and transfers in Zanzibar.'
         }`
-      : message || 'Hello Ibrahim! I would like to inquire about tours and transfers in Zanzibar.'
+      : message || `Hello ${brandName}! I would like to inquire about tours and transfers in Zanzibar.`,
+    brandWhatsapp
   );
 
   return (
@@ -95,21 +104,21 @@ export default function ContactPage() {
               Home
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-            <span className="text-sky-300 font-semibold">Contact Ibrahim</span>
+            <span className="text-sky-300 font-semibold">Contact Us</span>
           </nav>
 
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-bold uppercase tracking-wider mb-4">
-              <MessageCircle className="w-4 h-4 text-emerald-400" />
-              <span>Direct WhatsApp & Phone Support</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-500/20 border border-sky-400/30 text-sky-200 text-xs font-bold uppercase tracking-wider mb-4">
+              <Compass className="w-4 h-4 text-sky-400" />
+              <span>Direct Island Support & Reservations</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Get in Touch with Ibrahim
+              Get in Touch with {OPERATOR.name}
             </h1>
 
             <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-              Have questions about tour itineraries, private boat charters, or airport pickups? Ibrahim is available 7 days a week to assist you in English, Swahili, or Italian.
+              Have questions about tour itineraries, private boat charters, or airport pickups? Our team is available 7 days a week to assist you in English, Swahili, Italian, French, German, or Arabic.
             </p>
           </div>
         </div>
@@ -148,12 +157,12 @@ export default function ContactPage() {
                         Fastest: WhatsApp
                       </span>
                       <span className="font-bold text-slate-900 block">
-                        +{OPERATOR.whatsapp}
+                        {brandWhatsapp}
                       </span>
                     </div>
                   </div>
                   <a
-                    href={getWhatsAppLink()}
+                    href={getLocalizedWhatsAppLink('default')}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-bold shadow-xs shrink-0 transition-colors"
@@ -173,12 +182,12 @@ export default function ContactPage() {
                         Direct Phone Call
                       </span>
                       <span className="font-bold text-slate-900 block">
-                        {OPERATOR.phone}
+                        {brandPhone}
                       </span>
                     </div>
                   </div>
                   <a
-                    href={`tel:${OPERATOR.phone}`}
+                    href={`tel:${brandPhone}`}
                     className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow-xs shrink-0 transition-colors"
                   >
                     Call Now
@@ -196,12 +205,12 @@ export default function ContactPage() {
                         Email Inquiry
                       </span>
                       <span className="font-bold text-slate-900 block text-xs break-all">
-                        {OPERATOR.email}
+                        {brandEmail}
                       </span>
                     </div>
                   </div>
                   <a
-                    href={`mailto:${OPERATOR.email}`}
+                    href={`mailto:${brandEmail}`}
                     className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold shadow-xs shrink-0 transition-colors"
                   >
                     Send Email
@@ -218,7 +227,7 @@ export default function ContactPage() {
                       Base Location
                     </span>
                     <span className="font-bold text-slate-900 block">
-                      {OPERATOR.location}
+                      {brandLocation}
                     </span>
                     <span className="text-xs text-slate-500 mt-0.5 block">
                       Available for hotel pickups across the entire island
@@ -264,7 +273,7 @@ export default function ContactPage() {
                     Message Prepared!
                   </h3>
                   <p className="text-xs sm:text-sm text-emerald-800 max-w-md mx-auto">
-                    Thank you <strong>{name || 'Traveler'}</strong>! Click below to send this directly to Ibrahim on WhatsApp for immediate confirmation.
+                    Thank you <strong>{name || 'Traveler'}</strong>! Click below to send this directly to our team on WhatsApp for immediate confirmation.
                   </p>
                   <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                     <a
@@ -418,13 +427,13 @@ export default function ContactPage() {
                       ) : (
                         <>
                           <Send className="w-4 h-4" />
-                          <span>Send Message to Ibrahim</span>
+                          <span>Send Message to Team</span>
                         </>
                       )}
                     </button>
 
                     <a
-                      href={getWhatsAppLink()}
+                      href={getLocalizedWhatsAppLink('default')}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-bold text-sm shadow-md transition-all active:scale-95 text-center"

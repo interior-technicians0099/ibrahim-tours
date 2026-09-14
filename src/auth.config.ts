@@ -2,7 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 
 export const authConfig: NextAuthConfig = {
   trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "ibrahim-tours-secret-key-32-chars-minimum-replace-in-prod",
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "zansafari-horizon-secret-key-32-chars-minimum-replace-in-prod",
   pages: {
     signIn: "/login",
   },

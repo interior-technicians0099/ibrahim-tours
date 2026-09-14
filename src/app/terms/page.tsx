@@ -17,9 +17,9 @@ import {
 import { OPERATOR } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'Terms of Service & Booking Conditions | Ibrahim Tours Zanzibar',
+  title: 'Terms of Service & Booking Conditions | Zansafari Horizon',
   description:
-    'Review the official terms of service for Ibrahim Tours Zanzibar. Clear policies on private excursion booking requests, full payment upon confirmation, weather guarantees, and cancellation rules.',
+    'Review the official terms of service for Zansafari Horizon. Clear policies on private excursion booking requests, full payment upon confirmation, weather guarantees, and cancellation rules.',
 };
 
 export default function TermsOfServicePage() {
@@ -55,7 +55,7 @@ export default function TermsOfServicePage() {
           </h1>
 
           <p className="mt-4 text-slate-300 text-sm sm:text-base leading-relaxed">
-            Welcome to Ibrahim Tours Zanzibar. These terms explain how booking requests work, our payment-in-full confirmation policy, safe weather guarantees, and cancellation rights.
+            Welcome to Zansafari Horizon. These terms explain how booking requests work, our payment-in-full confirmation policy, safe weather guarantees, and cancellation rights.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-4 text-xs text-slate-400">
@@ -87,7 +87,7 @@ export default function TermsOfServicePage() {
             </div>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
               <span className="font-bold text-slate-900 block mb-1">Direct Verification</span>
-              Ibrahim confirms your date and details directly via email & WhatsApp.
+              Our reservations team confirms your date and details directly via email & WhatsApp.
             </div>
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
               <span className="font-bold text-slate-900 block mb-1">Weather Guarantee</span>
@@ -103,7 +103,7 @@ export default function TermsOfServicePage() {
             1. Scope of Services
           </h3>
           <p>
-            Ibrahim Tours Zanzibar operates private personalized guided excursions, cultural tours, marine safaris, and island transfers across Unguja (Zanzibar) and Pemba. All tours are operated by certified, licensed local Zanzibari guides in compliance with Zanzibar Tourism Commission regulations.
+            Zansafari Horizon operates private personalized guided excursions, cultural tours, marine safaris, and island transfers across Unguja (Zanzibar) and Pemba. All tours are operated by certified, licensed local Zanzibari guides in compliance with Zanzibar Tourism Commission regulations.
           </p>
         </div>
 
@@ -121,7 +121,7 @@ export default function TermsOfServicePage() {
               <strong>No Online Charge:</strong> We do not ask for or charge your credit card on the website.
             </li>
             <li>
-              <strong>Direct Review:</strong> Ibrahim reviews your party size, pickup hotel, and timing to guarantee vehicle availability.
+              <strong>Direct Review:</strong> Our operations desk reviews your party size, pickup hotel, and timing to guarantee vehicle availability.
             </li>
             <li>
               <strong>Payment in Full Required for Confirmation:</strong> In accordance with our operational business rules, an excursion is legally and operationally <strong>CONFIRMED</strong> only once full payment (<span className="font-mono font-bold text-emerald-700">PAID_IN_FULL</span>) has been recorded via cash, Vodacom M-Pesa, or direct bank transfer.
@@ -187,7 +187,7 @@ export default function TermsOfServicePage() {
             6. Governing Law & Dispute Resolution
           </h3>
           <p>
-            These terms are governed by the laws of the Revolutionary Government of Zanzibar and the United Republic of Tanzania. In the event of any question or dispute, we encourage open, friendly communication directly with Ibrahim Mohamed to find an equitable solution.
+            These terms are governed by the laws of the Revolutionary Government of Zanzibar and the United Republic of Tanzania. In the event of any question or dispute, we encourage open, friendly communication directly with Zansafari Horizon management to find an equitable solution.
           </p>
         </div>
 
@@ -198,7 +198,7 @@ export default function TermsOfServicePage() {
               Questions About Our Booking Terms?
             </h3>
             <p className="text-xs text-slate-500">
-              Reach out directly to Ibrahim for any personalized questions or custom itinerary arrangements.
+              Reach out directly to our team for any personalized questions or custom itinerary arrangements.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -206,7 +206,7 @@ export default function TermsOfServicePage() {
               href="/contact"
               className="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs shadow-md transition-all active:scale-95"
             >
-              Contact Ibrahim
+              Contact Us
             </Link>
             <Link
               href="/privacy"

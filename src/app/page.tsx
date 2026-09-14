@@ -20,7 +20,7 @@ export default async function HomePage() {
       {/* 1. Full-Width Tropical Hero */}
       <Hero />
 
-      {/* 2. Meet Ibrahim Trust Intro Card */}
+      {/* 2. Zansafari Horizon Trust Intro Card */}
       <TrustIntro />
 
       {/* 3. Grid of 8 Featured Packages with Dual CTAs */}
@@ -35,7 +35,7 @@ export default async function HomePage() {
       {/* 6. Verified 5-Star Guest Reviews */}
       <ReviewsPreview />
 
-      {/* 7. Why Choose Ibrahim (Trust Signals) */}
+      {/* 7. Why Choose Zansafari Horizon (Trust Signals) */}
       <WhyChooseOperator />
 
       {/* 8. Blue Band Final Call To Action */}

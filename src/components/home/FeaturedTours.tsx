@@ -140,7 +140,7 @@ interface FeaturedToursProps {
 }
 
 export default function FeaturedTours({ tours }: FeaturedToursProps) {
-  const { t, locale } = useLanguage();
+  const { t, locale, getLocalizedWhatsAppLink } = useLanguage();
 
   const displayTours = tours && tours.length > 0 ? tours : FEATURED_PACKAGES;
 
@@ -242,7 +242,7 @@ export default function FeaturedTours({ tours }: FeaturedToursProps) {
                     </Link>
 
                     <a
-                      href={getTourWhatsAppLink(tour.title, locale)}
+                      href={getLocalizedWhatsAppLink('tour', { title: tour.title })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-semibold text-xs shadow-sm shadow-emerald-500/20 transition-colors text-center"

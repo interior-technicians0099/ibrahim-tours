@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { TRANSFER_ROUTES, VEHICLES, OPERATOR } from '@/lib/constants';
 import { getWhatsAppLink, formatPrice } from '@/lib/utils';
+import { getCompanyProfile } from '@/lib/company';
 import VehicleCard from '@/components/transport/VehicleCard';
 import TransferCard from '@/components/transport/TransferCard';
 import { cookies } from 'next/headers';
@@ -25,20 +26,22 @@ import { Locale } from '@/lib/i18n/types';
 export const metadata: Metadata = {
   title: 'Transportation & Transfers | Private Zanzibar Taxi & Airport Pickup',
   description:
-    'Reliable private airport transfers and island-wide taxi services in Zanzibar with Ibrahim. Clean AC vans and buses, fixed transparent prices, free airport meet & greet, and verified direct booking.',
+    'Reliable private airport transfers and island-wide taxi services in Zanzibar with Zansafari Horizon. Clean AC vans and buses, fixed transparent prices, free airport meet & greet, and verified direct booking.',
 };
 
 export default async function TransportationPage() {
   const cookieStore = await cookies();
   const locale = (cookieStore.get('locale')?.value as Locale) || 'en';
   const dict = getDictionary(locale);
+  const company = await getCompanyProfile();
+  const brandWhatsapp = company?.officialWhatsapp || company?.whatsapp;
 
   const popularRouteIds = ['trans-1', 'trans-2', 'trans-3'];
   const popularRoutes = TRANSFER_ROUTES.filter((r) => popularRouteIds.includes(r.id));
   const otherRoutes = TRANSFER_ROUTES.filter((r) => !popularRouteIds.includes(r.id));
 
   const customTransferMsg =
-    'Hello Ibrahim! I need a private driver / transfer service in Zanzibar. Can you provide availability and a quote?';
+    'Hello Zansafari Horizon! I need a private driver / transfer service in Zanzibar. Can you provide availability and a quote?';
 
   return (
     <div className="bg-slate-50 min-h-screen">
@@ -170,13 +173,13 @@ export default async function TransportationPage() {
               Need a dedicated private driver for the day?
             </h2>
             <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-              Hire Ibrahim or our professional drivers for flexible hourly or whole-day hire. Perfect for exploring remote beaches, hopping between restaurants, or attending business meetings in Stone Town.
+              Hire our professional licensed drivers for flexible hourly or whole-day hire. Perfect for exploring remote beaches, hopping between restaurants, or attending business meetings in Stone Town.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
             <Link
-              href="/book?type=transfer"
+              href="/book?type=transport"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-bold text-sm shadow-lg shadow-sky-600/30 transition-all active:scale-95 text-center"
             >
               <CalendarCheck className="w-4 h-4" />
@@ -184,7 +187,7 @@ export default async function TransportationPage() {
             </Link>
 
             <a
-              href={getWhatsAppLink(customTransferMsg)}
+              href={getWhatsAppLink(customTransferMsg, brandWhatsapp)}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] active:bg-[#1caa50] text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition-all active:scale-95 text-center"
