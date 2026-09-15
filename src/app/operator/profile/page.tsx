@@ -36,5 +36,12 @@ export default async function OperatorProfilePage() {
     languages: profile?.languages || ['English', 'Italian', 'Swahili'],
   };
 
-  return <OperatorProfileClient initialProfile={initialProfile} />;
+  return (
+    <OperatorProfileClient
+      initialProfile={initialProfile}
+      userRole={user.role}
+      userEmail={user.email}
+      isReadOnly={user.role === Role.OPERATOR}
+    />
+  );
 }

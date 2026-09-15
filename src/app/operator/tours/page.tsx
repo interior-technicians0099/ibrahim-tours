@@ -17,6 +17,7 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 interface OperatorToursPageProps {
   searchParams?: Promise<{ from?: string; unauthorized?: string }>;
@@ -43,50 +44,34 @@ export default async function OperatorToursPage({ searchParams }: OperatorToursP
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* Header */}
-      <header className="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link
-            href={user.role === 'PLATFORM_ADMIN' ? '/platform' : '/'}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors flex items-center gap-1.5 text-xs font-semibold"
-            title={user.role === 'PLATFORM_ADMIN' ? 'Rudi Platform Admin' : 'Rudi Tovuti Kuu (Home)'}
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">{user.role === 'PLATFORM_ADMIN' ? 'Platform' : 'Tovuti Kuu'}</span>
-          </Link>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-bold text-white">Manage Excursions & Tours</h1>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {user.role}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400">Scoped to Zansafari Horizon catalog</p>
-          </div>
-        </div>
+      {/* Unified Role-Aware Navigation Bar */}
+      <OperatorNav
+        userRole={user.role}
+        userEmail={user.email}
+        operatorName="Zansafari Horizon"
+      />
 
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          {/* Active user email */}
-          <div className="hidden md:flex flex-col text-right">
-            <span className="text-xs font-semibold text-slate-200">{user.email}</span>
-            <span className="text-[10px] text-slate-400">Umeingia sasa hivi</span>
+      {/* Action Sub-header */}
+      <div className="bg-slate-900/40 border-b border-slate-800/80 px-4 sm:px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+              Manage Excursions & Tours
+            </h1>
+            <p className="text-xs text-slate-400">
+              Katalogi ya safari na vifurushi vya Zansafari Horizon ({dbTours.length} tours)
+            </p>
           </div>
 
           <Link
             href="/operator/tours/new"
-            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+            className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Tour</span>
           </Link>
-
-          {/* Sign Out Button */}
-          <LogoutButton
-            showText
-            className="px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 border border-rose-500/30 transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-          />
         </div>
-      </header>
+      </div>
 
       {/* Alert Banner if redirected from /platform */}
       {isFromPlatform && (

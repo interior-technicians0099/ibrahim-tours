@@ -49,10 +49,18 @@ export async function POST(request: NextRequest) {
 
     const data = parseResult.data;
 
-    // 5. Look up Company Profile for payment instructions
-    const operator =
-      (await prisma.companyProfile.findUnique({ where: { id: 'operator-ibrahim' } })) ||
-      (await prisma.companyProfile.findFirst()) || {
+    // 5. Look up Company Profile for payment instructions (Safe with fallback)
+    let operator: any = null;
+    try {
+      operator =
+        (await prisma.companyProfile.findUnique({ where: { id: 'operator-ibrahim' } })) ||
+        (await prisma.companyProfile.findFirst());
+    } catch (err) {
+      console.warn('Could not query companyProfile, falling back to default:', err);
+    }
+
+    if (!operator) {
+      operator = {
         id: 'operator-ibrahim',
         name: 'Zansafari Horizon Operations',
         companyName: 'Zansafari Horizon',
@@ -64,6 +72,7 @@ export async function POST(request: NextRequest) {
         bankAccount: '0150 0000 0000 0',
         whatsapp: '+255 618 769 150',
       };
+    }
 
     // 6. Generate non-guessable alphanumeric reference code like ZNZ-2026-XXXXXX
     const year = new Date().getFullYear();
@@ -172,39 +181,76 @@ export async function POST(request: NextRequest) {
     // status = REQUESTED (new booking request state)
     // paymentStatus = NOT_PAID (unpaid, waiting for operator confirmation and full payment)
     // No online payment processed
-    const booking = await prisma.booking.create({
-      data: {
-        referenceCode,
-        serviceType: data.serviceType === 'TOUR' ? ServiceType.TOUR : ServiceType.TRANSPORT,
-        tourId,
-        transportServiceId,
-        routeId,
-        operatorId: assignedOperatorId,
-        tier: tierName,
-        customerName: data.fullName,
-        customerEmail: data.email,
-        customerPhone: data.phone,
-        customerCountry: data.country || 'United Kingdom',
-        locale: data.locale || 'en',
-        bookingDate,
-        bookingTime,
-        numAdults: data.serviceType === 'TOUR' ? data.numAdults : data.passengers,
-        numChildren: data.serviceType === 'TOUR' ? data.numChildren : 0,
-        pickupLocation,
-        dropoffLocation,
-        specialRequests: data.specialRequests || null,
-        guideNotes: data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null,
-        status: BookingStatus.REQUESTED,
-        paymentStatus: PaymentStatus.NOT_PAID,
-        amountPaidCents: 0,
-        quotedPriceCents: totalPriceCents,
-        totalPriceCents,
-        costCents,
-        profitCents: costCents ? totalPriceCents - costCents : null,
-        commissionRate: null, // Settled later during monthly audit
-        commissionAmountCents: null,
-      },
-    });
+    let booking: any;
+    try {
+      booking = await prisma.booking.create({
+        data: {
+          referenceCode,
+          serviceType: data.serviceType === 'TOUR' ? ServiceType.TOUR : ServiceType.TRANSPORT,
+          tourId,
+          transportServiceId,
+          routeId,
+          operatorId: assignedOperatorId,
+          tier: tierName,
+          customerName: data.fullName,
+          customerEmail: data.email,
+          customerPhone: data.phone,
+          customerCountry: data.country || 'United Kingdom',
+          locale: data.locale || 'en',
+          bookingDate,
+          bookingTime,
+          numAdults: data.serviceType === 'TOUR' ? data.numAdults : data.passengers,
+          numChildren: data.serviceType === 'TOUR' ? data.numChildren : 0,
+          pickupLocation,
+          dropoffLocation,
+          specialRequests: data.specialRequests || null,
+          guideNotes: data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null,
+          status: BookingStatus.REQUESTED,
+          paymentStatus: PaymentStatus.NOT_PAID,
+          amountPaidCents: 0,
+          quotedPriceCents: totalPriceCents,
+          totalPriceCents,
+          costCents,
+          profitCents: costCents ? totalPriceCents - costCents : null,
+          commissionRate: null, // Settled later during monthly audit
+          commissionAmountCents: null,
+        },
+      });
+    } catch (createErr) {
+      console.warn('Booking create with operatorId failed, falling back without operatorId:', createErr);
+      booking = await prisma.booking.create({
+        data: {
+          referenceCode,
+          serviceType: data.serviceType === 'TOUR' ? ServiceType.TOUR : ServiceType.TRANSPORT,
+          tourId,
+          transportServiceId,
+          routeId,
+          tier: tierName,
+          customerName: data.fullName,
+          customerEmail: data.email,
+          customerPhone: data.phone,
+          customerCountry: data.country || 'United Kingdom',
+          locale: data.locale || 'en',
+          bookingDate,
+          bookingTime,
+          numAdults: data.serviceType === 'TOUR' ? data.numAdults : data.passengers,
+          numChildren: data.serviceType === 'TOUR' ? data.numChildren : 0,
+          pickupLocation,
+          dropoffLocation,
+          specialRequests: data.specialRequests || null,
+          guideNotes: data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null,
+          status: BookingStatus.REQUESTED,
+          paymentStatus: PaymentStatus.NOT_PAID,
+          amountPaidCents: 0,
+          quotedPriceCents: totalPriceCents,
+          totalPriceCents,
+          costCents,
+          profitCents: costCents ? totalPriceCents - costCents : null,
+          commissionRate: null,
+          commissionAmountCents: null,
+        },
+      });
+    }
 
     // 9. Write Booking Creation to AuditLog
     await prisma.auditLog.create({

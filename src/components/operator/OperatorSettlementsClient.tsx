@@ -27,6 +27,7 @@ import { formatPrice } from '@/lib/utils';
 import { SettlementStatus } from '@prisma/client';
 import LogoutButton from '@/components/auth/LogoutButton';
 import { exportToCsv } from '@/lib/export-csv';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 export interface OperatorSettlementItem {
   id: string;
@@ -57,12 +58,16 @@ interface Props {
   initialSettlements: OperatorSettlementItem[];
   contributingBookings: OperatorContributingBooking[];
   operatorName: string;
+  userRole?: string;
+  userEmail?: string;
 }
 
 export default function OperatorSettlementsClient({
   initialSettlements,
   contributingBookings,
   operatorName,
+  userRole = 'COMPANY_ADMIN',
+  userEmail = 'manager@zansafarihorizon.com',
 }: Props) {
   const [settlements] = useState<OperatorSettlementItem[]>(initialSettlements);
   const [activeDrillSettlement, setActiveDrillSettlement] =
@@ -148,100 +153,12 @@ export default function OperatorSettlementsClient({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-24">
-      {/* 1. Header Navbar */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
-            <Compass className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-extrabold text-base sm:text-lg text-white">
-                {operatorName}
-              </h1>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Operator Portal
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Monthly Settlement Statements & Commercial Transparency
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            target="_blank"
-            className="text-xs text-slate-400 hover:text-white hidden sm:flex items-center gap-1 transition-colors"
-          >
-            <span>Live Site</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-          <LogoutButton />
-        </div>
-      </header>
-
-      {/* 2. Navigation Tabs */}
-      <div className="bg-slate-900/50 border-b border-slate-800 px-4 sm:px-6 overflow-x-auto scrollbar-none">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 py-2">
-          <Link
-            href="/operator"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <span>Bookings & Ledger</span>
-          </Link>
-          <Link
-            href="/operator/tours"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Manage Tours</span>
-          </Link>
-          <Link
-            href="/operator/transport"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Car className="w-3.5 h-3.5" />
-            <span>Transfers & Fleet</span>
-          </Link>
-          <Link
-            href="/operator/categories"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Categories</span>
-          </Link>
-          <Link
-            href="/operator/reviews"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Star className="w-3.5 h-3.5" />
-            <span>Reviews</span>
-          </Link>
-          <Link
-            href="/operator/faqs"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            <span>FAQs</span>
-          </Link>
-          <Link
-            href="/operator/profile"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Profile & Payment</span>
-          </Link>
-          <Link
-            href="/operator/settlements"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shrink-0 shadow-sm"
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Settlements & Statements</span>
-          </Link>
-        </div>
-      </div>
+      {/* 1. Unified Navigation Bar */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+        operatorName={operatorName}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">

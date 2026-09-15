@@ -20,6 +20,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import MediaManager, { MediaItem } from '@/components/operator/MediaManager';
+import OperatorNav from '@/components/operator/OperatorNav';
 import {
   saveRouteAction,
   deleteRouteAction,
@@ -52,9 +53,16 @@ interface VehicleItem {
 interface Props {
   initialRoutes: RouteItem[];
   initialVehicles: VehicleItem[];
+  userRole?: string;
+  userEmail?: string;
 }
 
-export default function TransportManagerClient({ initialRoutes, initialVehicles }: Props) {
+export default function TransportManagerClient({
+  initialRoutes,
+  initialVehicles,
+  userRole = 'OPERATOR',
+  userEmail = 'operator@zansafarihorizon.com',
+}: Props) {
   const [activeTab, setActiveTab] = useState<'routes' | 'vehicles'>('routes');
   const [routes, setRoutes] = useState<RouteItem[]>(initialRoutes);
   const [vehicles, setVehicles] = useState<VehicleItem[]>(initialVehicles);

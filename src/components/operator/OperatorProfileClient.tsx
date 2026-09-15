@@ -20,6 +20,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import MediaManager, { MediaItem } from '@/components/operator/MediaManager';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 interface OperatorProfileData {
   id: string;
@@ -43,9 +44,17 @@ interface OperatorProfileData {
 
 interface Props {
   initialProfile: OperatorProfileData;
+  userRole?: string;
+  userEmail?: string;
+  isReadOnly?: boolean;
 }
 
-export default function OperatorProfileClient({ initialProfile }: Props) {
+export default function OperatorProfileClient({
+  initialProfile,
+  userRole = 'COMPANY_ADMIN',
+  userEmail = 'manager@zansafarihorizon.com',
+  isReadOnly = false,
+}: Props) {
   const [name, setName] = useState(initialProfile.name || '');
   const [businessName, setBusinessName] = useState(initialProfile.businessName || '');
   const [phone, setPhone] = useState(initialProfile.phone || '');
@@ -126,43 +135,58 @@ export default function OperatorProfileClient({ initialProfile }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* Header */}
-      <header className="bg-slate-900/80 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/operator"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-white">Operator Profile & Verification</h1>
-            <p className="text-xs text-slate-400">Bio, photo, TRA license doc, and payment accounts</p>
-          </div>
-        </div>
+      {/* Unified Role-Aware Navigation Bar */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+      />
 
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isSaving}
-          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50"
-        >
-          {isSaving ? (
-            <>
-              <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-              <span>Saving...</span>
-            </>
-          ) : (
-            <>
-              <Save className="w-4 h-4" />
-              <span>Save Profile</span>
-            </>
+      {/* Sub-header with Title & Actions */}
+      <div className="bg-slate-900/40 border-b border-slate-800/80 px-4 sm:px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+              Company Profile & Official Settings
+            </h1>
+            <p className="text-xs text-slate-400">
+              Akaunti za Benki (CRDB), Namba ya M-Pesa, Leseni ya TRA na Taarifa za Malipo
+            </p>
+          </div>
+
+          {!isReadOnly && (
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSaving}
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              {isSaving ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </button>
           )}
-        </button>
-      </header>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-8">
+        {isReadOnly && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-3">
+            <Lock className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <strong className="block font-bold">Hali ya Kusoma Tu (Company Admin Only):</strong>
+              <span>Akaunti za benki (CRDB), namba rasmi ya M-Pesa na leseni ya TRA zinasimamiwa na Meneja wa Kampuni pekee.</span>
+            </div>
+          </div>
+        )}
         {saveSuccess && (
           <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />

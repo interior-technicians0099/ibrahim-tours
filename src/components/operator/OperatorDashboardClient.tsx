@@ -37,10 +37,12 @@ import {
   AlertCircle,
   Check,
   Sparkles,
+  Building,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import LogoutButton from '@/components/auth/LogoutButton';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 export interface OperatorPaymentItem {
   id: string;
@@ -92,12 +94,16 @@ interface Props {
   initialBookings: OperatorBookingItem[];
   operatorName: string;
   operatorId: string;
+  userRole?: string;
+  userEmail?: string;
 }
 
 export default function OperatorDashboardClient({
   initialBookings,
   operatorName,
   operatorId,
+  userRole = 'OPERATOR',
+  userEmail = 'operator@zansafarihorizon.com',
 }: Props) {
   const [bookings, setBookings] = useState<OperatorBookingItem[]>(initialBookings);
   const [searchQuery, setSearchQuery] = useState('');
@@ -374,113 +380,61 @@ export default function OperatorDashboardClient({
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-24">
       
-      {/* 1. Header Navbar */}
-      <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
-            <Compass className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-extrabold text-base sm:text-lg text-white">
-                {operatorName}
-              </h1>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                Operator Portal
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 hidden sm:block">
-              Zansafari Horizon • Bookings, Cash/M-Pesa Ledger & Verification
-            </p>
-          </div>
-        </div>
+      {/* 1. Unified Role-Aware Navigation Bar */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+        operatorName={operatorName}
+        pendingBookingsCount={bookings.filter((b) => b.status === BookingStatus.REQUESTED).length}
+      />
 
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            target="_blank"
-            className="text-xs text-slate-400 hover:text-white hidden sm:flex items-center gap-1 transition-colors"
-          >
-            <span>Live Site</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-          <LogoutButton />
-        </div>
-      </header>
-
-      {/* 2. Navigation Tabs */}
-      <div className="bg-slate-900/50 border-b border-slate-800 px-4 sm:px-6 overflow-x-auto scrollbar-none">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 py-2">
-          <Link
-            href="/operator"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shrink-0"
-          >
-            <span>Bookings & Ledger</span>
-            <span className="px-1.5 py-0.2 bg-emerald-400 text-slate-950 rounded-full text-[10px] font-bold">
-              {bookings.length}
-            </span>
-          </Link>
-          <Link
-            href="/operator/tours"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Compass className="w-3.5 h-3.5" />
-            <span>Manage Tours</span>
-          </Link>
-          <Link
-            href="/operator/transport"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Car className="w-3.5 h-3.5" />
-            <span>Transfers & Fleet</span>
-          </Link>
-          <Link
-            href="/operator/categories"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Categories</span>
-          </Link>
-          <Link
-            href="/operator/reviews"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Star className="w-3.5 h-3.5" />
-            <span>Reviews</span>
-          </Link>
-          <Link
-            href="/operator/faqs"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            <span>FAQs</span>
-          </Link>
-          <Link
-            href="/operator/branding"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Branding & Logo</span>
-          </Link>
-          <Link
-            href="/operator/profile"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Profile & Payment</span>
-          </Link>
-          <Link
-            href="/operator/settlements"
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors flex items-center gap-1.5 shrink-0"
-          >
-            <Receipt className="w-3.5 h-3.5" />
-            <span>Settlements & Statements</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* 3. Main Dashboard Workspace */}
+      {/* 2. Main Dashboard Workspace */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        {/* Role Capability Banner */}
+        {userRole === 'COMPANY_ADMIN' ? (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-slate-900 border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-emerald-500/5">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 flex items-center justify-center shrink-0 mt-0.5">
+                <Building className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-extrabold text-sm sm:text-base text-emerald-300">
+                    Mamlaka ya Meneja wa Kampuni (Company Executive Portal)
+                  </span>
+                  <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Full Executive Access
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-3xl">
+                  Umeingia kama <strong className="text-white">{userEmail}</strong>. Una mamlaka kamili ya kuangalia mapato na makato ya mwezi kwenye <Link href="/operator/settlements" className="underline font-bold text-emerald-400 hover:text-emerald-300">Settlements & Statements</Link>, kurekebisha akaunti za benki (CRDB) na M-Pesa kwenye <Link href="/operator/profile" className="underline font-bold text-emerald-400 hover:text-emerald-300">Bank & Profile</Link>, kusimamia nembo kwenye <Link href="/operator/branding" className="underline font-bold text-emerald-400 hover:text-emerald-300">Branding</Link>, pamoja na kuona ledger nzima ya watalii.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-sky-500/10 via-sky-500/5 to-slate-900 border border-sky-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg shadow-sky-500/5">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/40 text-sky-300 flex items-center justify-center shrink-0 mt-0.5">
+                <Compass className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-extrabold text-sm sm:text-base text-sky-300">
+                    Lango la Operesheni za Ugani & Dispatch (Field Operations Desk)
+                  </span>
+                  <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40">
+                    Field Dispatch Desk
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-3xl">
+                  Umeingia kama <strong className="text-white">{userEmail}</strong>. Wajibu wako mkuu ni kupokea watalii, kuratibu magari na madereva, na kurekodi malipo ya Cash na M-Pesa uwanjani. <em>(Kumbuka: Mipangilio ya kibenki, leseni na mikataba ya platform commission inasimamiwa na Meneja wa Kampuni pekee)</em>.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Gate Alert Banner */}
         {statusGateAlert && (

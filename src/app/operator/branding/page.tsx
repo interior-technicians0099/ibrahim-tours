@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 export default async function OperatorBrandingPage() {
-  await requireRole([Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN, Role.OPERATOR]);
+  const user = await requireRole([Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN, Role.OPERATOR]);
   const profile = await getCompanyProfile();
 
   const initialData: BrandingData = {
@@ -35,5 +35,12 @@ export default async function OperatorBrandingPage() {
     shortBio: profile.shortBio,
   };
 
-  return <BrandingManagerClient initialData={initialData} />;
+  return (
+    <BrandingManagerClient
+      initialData={initialData}
+      userRole={user.role}
+      userEmail={user.email}
+      isReadOnly={user.role === Role.OPERATOR}
+    />
+  );
 }

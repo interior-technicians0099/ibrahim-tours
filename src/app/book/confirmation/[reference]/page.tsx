@@ -42,17 +42,35 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get('locale')?.value;
 
-  // Fetch booking with relations
-  const booking = await prisma.booking.findUnique({
-    where: { referenceCode: reference },
-    include: {
-      tour: true,
-      transportService: true,
-      route: true,
-      operator: true,
-      receipt: true,
-    },
-  });
+  // Fetch booking with relations safely
+  let booking: any = null;
+  try {
+    booking = await prisma.booking.findUnique({
+      where: { referenceCode: reference },
+      include: {
+        tour: true,
+        transportService: true,
+        route: true,
+        operator: true,
+        receipt: true,
+      },
+    });
+  } catch (err) {
+    console.warn('Booking confirmation fetch with operator failed, trying fallback:', err);
+    try {
+      booking = await prisma.booking.findUnique({
+        where: { referenceCode: reference },
+        include: {
+          tour: true,
+          transportService: true,
+          route: true,
+          receipt: true,
+        },
+      });
+    } catch (e2) {
+      console.error('Failed to load booking by reference:', e2);
+    }
+  }
 
   const resolvedLocale = (booking as any)?.locale || localeCookie || '';
   const locale: Locale = isSupportedLocale(resolvedLocale)

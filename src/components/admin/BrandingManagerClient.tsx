@@ -18,10 +18,11 @@ import {
   Calendar,
   Image as ImageIcon,
   ExternalLink,
-  RefreshCw,
   FileCheck,
+  Lock,
 } from 'lucide-react';
 import MediaManager, { MediaItem } from '@/components/operator/MediaManager';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 export interface BrandingData {
   id: string;
@@ -47,9 +48,17 @@ export interface BrandingData {
 
 interface Props {
   initialData: BrandingData;
+  userRole?: string;
+  userEmail?: string;
+  isReadOnly?: boolean;
 }
 
-export default function BrandingManagerClient({ initialData }: Props) {
+export default function BrandingManagerClient({
+  initialData,
+  userRole = 'COMPANY_ADMIN',
+  userEmail = 'manager@zansafarihorizon.com',
+  isReadOnly = false,
+}: Props) {
   // Brand identity
   const [companyName, setCompanyName] = useState(initialData.companyName || 'Zansafari Horizon');
   const [tagline, setTagline] = useState(initialData.tagline || 'Spice • Culture • Wildlife');
@@ -156,44 +165,35 @@ export default function BrandingManagerClient({ initialData }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-24">
-      {/* Sticky Header */}
-      <header className="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-8 py-4 sticky top-0 z-30 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/operator"
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-bold text-white">Company Branding & Settings</h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  LIVE ISR SYNC
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">
-                Manage company name, logo, official contacts, licensing, and payment accounts
-              </p>
+      {/* Unified Role-Aware Navigation Bar */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+      />
+
+      {/* Action Sub-header */}
+      <div className="bg-slate-900/40 border-b border-slate-800/80 px-4 sm:px-8 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                Company Branding & Identity
+              </h1>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                LIVE ISR SYNC
+              </span>
             </div>
+            <p className="text-xs text-slate-400">
+              Manage company name, logo, official contacts, licensing, and payment accounts
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-            >
-              <span>View Site</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </Link>
-
+          {!isReadOnly && (
             <button
               type="button"
               onClick={handleSubmit}
               disabled={isSaving}
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 active:scale-95"
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 cursor-pointer"
             >
               {isSaving ? (
                 <>
@@ -207,12 +207,21 @@ export default function BrandingManagerClient({ initialData }: Props) {
                 </>
               )}
             </button>
-          </div>
+          )}
         </div>
-      </header>
+      </div>
 
       {/* Main Form Container */}
       <main className="max-w-6xl mx-auto px-4 sm:px-8 pt-8">
+        {isReadOnly && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-3">
+            <Lock className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <strong className="block font-bold">Hali ya Kusoma Tu (Company Admin Only):</strong>
+              <span>Nembo na taarifa rasmi za kampuni zinasimamiwa na Meneja wa Kampuni pekee.</span>
+            </div>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Notifications */}
           {saveSuccess && (
