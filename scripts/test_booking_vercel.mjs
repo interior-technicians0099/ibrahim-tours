@@ -4,17 +4,19 @@ async function testBookingSubmit() {
   console.log('Testing booking submit on Vercel...');
   const payload = {
     serviceType: 'TOUR',
-    tier: 'standard',
-    customerName: 'Hamadi Test',
-    customerEmail: 'hamaditest@example.com',
-    customerPhone: '+255712345678',
-    customerCountry: 'Tanzania',
-    bookingDate: '2026-09-25',
+    tourSlug: 'stone-town-tour',
+    tourDate: '2026-10-02',
+    tourTime: '01:30 PM',
     numAdults: 2,
     numChildren: 0,
     pickupLocation: 'Stone Town Hotel',
-    specialRequests: 'Test booking from CLI',
-    selectedLanguage: 'sw',
+    fullName: 'Hamadi Juma',
+    email: 'hamadijuma@example.com',
+    phone: '+255712345678',
+    country: 'Tanzania',
+    specialRequests: 'Test booking from CLI after vercel deploy',
+    locale: 'sw',
+    preferredLanguage: 'German',
   };
 
   try {

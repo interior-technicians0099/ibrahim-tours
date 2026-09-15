@@ -177,10 +177,13 @@ export async function POST(request: NextRequest) {
       costCents = null; // Transport cost determined upon vehicle dispatch
     }
 
-    // 8. Create Booking in database:
-    // status = REQUESTED (new booking request state)
-    // paymentStatus = NOT_PAID (unpaid, waiting for operator confirmation and full payment)
-    // No online payment processed
+    // 8. Create Booking in database (with multi-tier resilient schema fallback):
+    const guideNoteText = data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null;
+    const combinedRequests = [
+      data.specialRequests,
+      guideNoteText ? `[${guideNoteText}]` : null,
+    ].filter(Boolean).join('\n');
+
     let booking: any;
     try {
       booking = await prisma.booking.create({
@@ -204,7 +207,7 @@ export async function POST(request: NextRequest) {
           pickupLocation,
           dropoffLocation,
           specialRequests: data.specialRequests || null,
-          guideNotes: data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null,
+          guideNotes: guideNoteText,
           status: BookingStatus.REQUESTED,
           paymentStatus: PaymentStatus.NOT_PAID,
           amountPaidCents: 0,
@@ -217,39 +220,74 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (createErr) {
-      console.warn('Booking create with operatorId failed, falling back without operatorId:', createErr);
-      booking = await prisma.booking.create({
-        data: {
-          referenceCode,
-          serviceType: data.serviceType === 'TOUR' ? ServiceType.TOUR : ServiceType.TRANSPORT,
-          tourId,
-          transportServiceId,
-          routeId,
-          tier: tierName,
-          customerName: data.fullName,
-          customerEmail: data.email,
-          customerPhone: data.phone,
-          customerCountry: data.country || 'United Kingdom',
-          locale: data.locale || 'en',
-          bookingDate,
-          bookingTime,
-          numAdults: data.serviceType === 'TOUR' ? data.numAdults : data.passengers,
-          numChildren: data.serviceType === 'TOUR' ? data.numChildren : 0,
-          pickupLocation,
-          dropoffLocation,
-          specialRequests: data.specialRequests || null,
-          guideNotes: data.preferredLanguage ? `Preferred Guide Language: ${data.preferredLanguage}` : null,
-          status: BookingStatus.REQUESTED,
-          paymentStatus: PaymentStatus.NOT_PAID,
-          amountPaidCents: 0,
-          quotedPriceCents: totalPriceCents,
-          totalPriceCents,
-          costCents,
-          profitCents: costCents ? totalPriceCents - costCents : null,
-          commissionRate: null,
-          commissionAmountCents: null,
-        },
-      });
+      console.warn('Booking create tier 1 failed, attempting tier 2 fallback:', createErr);
+      try {
+        booking = await prisma.booking.create({
+          data: {
+            referenceCode,
+            serviceType: data.serviceType === 'TOUR' ? ServiceType.TOUR : ServiceType.TRANSPORT,
+            tourId,
+            transportServiceId,
+            routeId,
+            tier: tierName,
+            customerName: data.fullName,
+            customerEmail: data.email,
+            customerPhone: data.phone,
+            customerCountry: data.country || 'United Kingdom',
+            locale: data.locale || 'en',
+            bookingDate,
+            bookingTime,
+            numAdults: data.serviceType === 'TOUR' ? data.numAdults : data.passengers,
+            numChildren: data.serviceType === 'TOUR' ? data.numChildren : 0,
+            pickupLocation,
+            dropoffLocation,
+            specialRequests: data.specialRequests || null,
+            guideNotes: guideNoteText,
+            status: BookingStatus.REQUESTED,
+            paymentStatus: PaymentStatus.NOT_PAID,
+            amountPaidCents: 0,
+            quotedPriceCents: totalPriceCents,
+            totalPriceCents,
+            costCents,
+            profitCents: costCents ? totalPriceCents - costCents : null,
+            commissionRate: null,
+            commissionAmountCents: null,
+          },
+        });
+      } catch (tier2Err) {
+        console.warn('Booking create tier 2 failed, using legacy schema fallback (no guideNotes/operatorId):', tier2Err);
+        booking = await prisma.booking.create({
+          data: {
+            referenceCode,
+            serviceType: data.serviceType === 'TOUR' ? ServiceType.TOUR : ServiceType.TRANSPORT,
+            tourId,
+            transportServiceId,
+            routeId,
+            tier: tierName,
+            customerName: data.fullName,
+            customerEmail: data.email,
+            customerPhone: data.phone,
+            customerCountry: data.country || 'United Kingdom',
+            locale: data.locale || 'en',
+            bookingDate,
+            bookingTime,
+            numAdults: data.serviceType === 'TOUR' ? data.numAdults : data.passengers,
+            numChildren: data.serviceType === 'TOUR' ? data.numChildren : 0,
+            pickupLocation,
+            dropoffLocation,
+            specialRequests: combinedRequests || null,
+            status: BookingStatus.REQUESTED,
+            paymentStatus: PaymentStatus.NOT_PAID,
+            amountPaidCents: 0,
+            quotedPriceCents: totalPriceCents,
+            totalPriceCents,
+            costCents,
+            profitCents: costCents ? totalPriceCents - costCents : null,
+            commissionRate: null,
+            commissionAmountCents: null,
+          },
+        });
+      }
     }
 
     // 9. Write Booking Creation to AuditLog

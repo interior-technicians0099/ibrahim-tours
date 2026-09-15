@@ -7,9 +7,13 @@ console.log('🚀 [deploy-db] Initializing database synchronization...');
 // 1. Push schema to database (applies new tables like CompanyProfile, Receipt, etc.)
 try {
   console.log('📦 [deploy-db] Running prisma db push...');
+  const pushEnv = {
+    ...process.env,
+    DIRECT_URL: process.env.DIRECT_URL || process.env.DATABASE_URL,
+  };
   execSync('npx prisma db push --accept-data-loss --skip-generate', {
     stdio: 'inherit',
-    env: { ...process.env },
+    env: pushEnv,
   });
   console.log('✅ [deploy-db] Prisma schema successfully pushed.');
 } catch (err) {
@@ -20,6 +24,16 @@ try {
 async function seedUsersAndCompany() {
   const prisma = new PrismaClient();
   try {
+    // 2.0 Directly ensure required columns exist in PostgreSQL
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "Booking" ADD COLUMN IF NOT EXISTS "guideNotes" TEXT;
+        ALTER TABLE "Booking" ADD COLUMN IF NOT EXISTS "operatorId" TEXT;
+      `);
+      console.log('✅ [deploy-db] Verified Booking columns via raw SQL.');
+    } catch (rawErr) {
+      console.warn('⚠️ [deploy-db] Raw SQL alter note:', rawErr?.message || rawErr);
+    }
     console.log('🌱 [deploy-db] Upserting CompanyProfile...');
     const companyData = {
       id: 'operator-ibrahim',
