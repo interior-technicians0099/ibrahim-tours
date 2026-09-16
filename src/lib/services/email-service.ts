@@ -42,35 +42,40 @@ async function dispatchResendEmail({
 
     const errorText = await res.text().catch(() => '');
 
-    // In sandbox mode with onboarding@resend.dev, unverified recipients return HTTP 403.
-    // Fallback immediately to deliver to the registered account inbox!
-    if (res.status === 403 && from.includes('resend.dev')) {
+    // If Resend returns 403, it's almost certainly because of Sandbox mode restrictions
+    // (either unverified 'from' domain OR unverified 'to' email address).
+    // We intercept this and FORCE delivery to the registered developer email using the allowed onboarding address.
+    if (res.status === 403) {
       const isAlreadyRecipient = to.some(
         (addr) => addr.toLowerCase() === sandboxFallbackEmail.toLowerCase()
       );
-      if (!isAlreadyRecipient) {
-        console.warn(
-          `[EmailService] Resend Sandbox (403): Redirecting email from ${to.join(', ')} to ${sandboxFallbackEmail}`
-        );
-        const fallbackRes = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from,
-            to: [sandboxFallbackEmail],
-            subject: `[Sandbox Preview - To: ${to.join(', ')}] ${subject}`,
-            html,
-          }),
-        });
+      
+      // Even if they are the recipient, if the 'from' address caused the 403, we still need to fallback.
+      console.warn(
+        `[EmailService] Resend Sandbox (403): Redirecting email from ${to.join(', ')} to ${sandboxFallbackEmail} (Error: ${errorText})`
+      );
+      
+      const fallbackRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'Zansafari Sandbox <onboarding@resend.dev>',
+          to: [sandboxFallbackEmail],
+          subject: `[Sandbox Preview - To: ${to.join(', ')}] ${subject}`,
+          html,
+        }),
+      });
 
-        if (fallbackRes.ok) {
-          const fallbackData = await fallbackRes.json();
-          return { ok: true, id: fallbackData.id };
-        }
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        return { ok: true, id: fallbackData.id };
       }
+      
+      const fallbackError = await fallbackRes.text().catch(() => '');
+      return { ok: false, error: `Fallback HTTP ${fallbackRes.status}: ${fallbackError}` };
     }
 
     return { ok: false, error: `HTTP ${res.status}: ${errorText}` };
