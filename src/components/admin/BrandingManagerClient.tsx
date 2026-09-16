@@ -98,6 +98,9 @@ export default function BrandingManagerClient({
   const [shortBio, setShortBio] = useState(initialData.shortBio || '');
 
   // Media States
+  const [manualLogoUrl, setManualLogoUrl] = useState(initialData.logoUrl || '');
+  const [manualTraLicenseUrl, setManualTraLicenseUrl] = useState(initialData.traLicenseUrl || '');
+
   const [logoMedia, setLogoMedia] = useState<MediaItem[]>(
     initialData.logoUrl ? [{ id: 'company_logo', url: initialData.logoUrl, isHero: true }] : []
   );
@@ -113,7 +116,7 @@ export default function BrandingManagerClient({
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const activeLogoUrl = logoMedia[0]?.url || initialData.logoUrl || '/branding/zansafari-logo.png';
+  const activeLogoUrl = logoMedia[0]?.url || manualLogoUrl.trim() || initialData.logoUrl || '/branding/zansafari-logo.png';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -128,15 +131,15 @@ export default function BrandingManagerClient({
         body: JSON.stringify({
           companyName: companyName.trim(),
           tagline: tagline.trim(),
-          logoUrl: logoMedia[0]?.url || initialData.logoUrl || '/branding/zansafari-logo.png',
-          faviconUrl: logoMedia[0]?.url || initialData.faviconUrl || '/branding/favicon.png',
+          logoUrl: logoMedia[0]?.url || manualLogoUrl.trim() || initialData.logoUrl || '/branding/zansafari-logo.png',
+          faviconUrl: logoMedia[0]?.url || manualLogoUrl.trim() || initialData.faviconUrl || '/branding/favicon.png',
           officialPhone: officialPhone.trim(),
           officialEmail: officialEmail.trim(),
           officialWhatsapp: officialWhatsapp.trim(),
           registrationNumber: registrationNumber.trim(),
           traLicenseNumber: traLicenseNumber.trim(),
           traLicenseExpiry: traLicenseExpiry || null,
-          traLicenseUrl: traLicenseMedia[0]?.url || null,
+          traLicenseUrl: traLicenseMedia[0]?.url || manualTraLicenseUrl.trim() || null,
           mpesaNumber: mpesaNumber.trim(),
           bankName: bankName.trim(),
           bankAccount: bankAccount.trim(),
@@ -268,16 +271,48 @@ export default function BrandingManagerClient({
                 <span className="text-[11px] text-amber-300 font-semibold">{tagline}</span>
               </div>
 
-              {/* Cloudinary MediaManager Upload */}
-              <div className="md:col-span-8 space-y-3">
+              {/* Cloudinary MediaManager Upload & Direct URL Fallback */}
+              <div className="md:col-span-8 space-y-4">
                 <MediaManager
                   items={logoMedia}
-                  onChange={(items) => setLogoMedia(items.slice(0, 1))}
+                  onChange={(items) => {
+                    setLogoMedia(items.slice(0, 1));
+                    if (items[0]?.url) setManualLogoUrl(items[0].url);
+                  }}
                   entityType="GENERAL"
                   allowMultiple={false}
                   label="Upload New Logo via Cloudinary"
                   helperText="Upload official company logo (PNG, JPG, or WebP). Automatically replaces the site-wide logo."
                 />
+
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Au Weka Link ya Nembo Moja kwa Moja (Direct Logo URL)
+                    </label>
+                    <span className="text-[10px] font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full">
+                      Mbadala / Fallback
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={manualLogoUrl}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setManualLogoUrl(val);
+                      if (val.trim()) {
+                        setLogoMedia([{ id: 'manual_logo', url: val.trim(), isHero: true }]);
+                      } else {
+                        setLogoMedia([]);
+                      }
+                    }}
+                    placeholder="https://... au /branding/zansafari-logo.png"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
+                  />
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Kama Cloudinary haijasanidiwa bado kwenye Vercel, unaweza kubandika (paste) link yoyote ya picha hapa moja kwa moja, kisha ubofye <strong>Save Branding</strong>.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -359,15 +394,44 @@ export default function BrandingManagerClient({
                 />
               </div>
 
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 space-y-3">
                 <MediaManager
                   items={traLicenseMedia}
-                  onChange={(items) => setTraLicenseMedia(items.slice(0, 1))}
+                  onChange={(items) => {
+                    setTraLicenseMedia(items.slice(0, 1));
+                    if (items[0]?.url) setManualTraLicenseUrl(items[0].url);
+                  }}
                   entityType="TRA_LICENSE"
                   allowMultiple={false}
                   label="TRA License Certificate Document / Image"
                   helperText="Upload official license document (PDF/Image) for regulatory verification."
                 />
+
+                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                      Au Weka Link ya Hati ya TRA (Direct Document / Image URL)
+                    </label>
+                    <span className="text-[10px] font-semibold text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-full">
+                      Mbadala / Fallback
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={manualTraLicenseUrl}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setManualTraLicenseUrl(val);
+                      if (val.trim()) {
+                        setTraLicenseMedia([{ id: 'manual_tra_license', url: val.trim(), isHero: true }]);
+                      } else {
+                        setTraLicenseMedia([]);
+                      }
+                    }}
+                    placeholder="https://... link ya PDF au Picha ya TRA"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
+                  />
+                </div>
               </div>
             </div>
           </div>

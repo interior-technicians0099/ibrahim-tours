@@ -5,7 +5,7 @@ import { Role } from '@prisma/client';
 import TransportManagerClient from '@/components/operator/TransportManagerClient';
 
 export default async function OperatorTransportPage() {
-  await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const [routes, vehicles] = await Promise.all([
     prisma.route.findMany({
@@ -42,6 +42,8 @@ export default async function OperatorTransportPage() {
     <TransportManagerClient
       initialRoutes={formattedRoutes}
       initialVehicles={formattedVehicles}
+      userRole={user.role}
+      userEmail={user.email}
     />
   );
 }

@@ -7,7 +7,7 @@ import TourEditorClient from '@/components/operator/TourEditorClient';
 
 export default async function EditTourPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
 
   const tour = await prisma.tour.findUnique({
@@ -25,7 +25,7 @@ export default async function EditTourPage(props: { params: Promise<{ id: string
   }
 
   // Operator permission check
-  if (user.role === Role.OPERATOR && scopedOperatorId && tour.operatorId !== scopedOperatorId) {
+  if ((user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) && scopedOperatorId && tour.operatorId && tour.operatorId !== scopedOperatorId) {
     throw new Error('403 Forbidden: You do not have permission to view or edit this tour.');
   }
 

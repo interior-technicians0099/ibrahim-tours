@@ -5,7 +5,7 @@ import { Role } from '@prisma/client';
 import ReviewManagerClient from '@/components/operator/ReviewManagerClient';
 
 export default async function OperatorReviewsPage() {
-  await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const [dbReviews, tours] = await Promise.all([
     prisma.review.findMany({
@@ -41,5 +41,12 @@ export default async function OperatorReviewsPage() {
     }),
   }));
 
-  return <ReviewManagerClient initialReviews={formattedReviews} tours={tours} />;
+  return (
+    <ReviewManagerClient
+      initialReviews={formattedReviews}
+      tours={tours}
+      userRole={user.role}
+      userEmail={user.email}
+    />
+  );
 }

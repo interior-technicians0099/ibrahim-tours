@@ -20,7 +20,7 @@ export async function saveReviewAction(data: {
   isFeatured?: boolean;
   adminResponse?: string;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   let review: any;
   if (data.id) {
@@ -88,7 +88,7 @@ export async function saveReviewAction(data: {
 }
 
 export async function toggleReviewPublishedAction(id: string, isPublished: boolean) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const review = await prisma.review.update({
     where: { id },
@@ -113,7 +113,7 @@ export async function toggleReviewPublishedAction(id: string, isPublished: boole
 }
 
 export async function deleteReviewAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const review = await prisma.review.delete({ where: { id } });
 

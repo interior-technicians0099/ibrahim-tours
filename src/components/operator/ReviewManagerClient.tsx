@@ -22,6 +22,7 @@ import {
   toggleReviewPublishedAction,
   deleteReviewAction,
 } from '@/lib/actions/review-actions';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 interface ReviewItem {
   id: string;
@@ -43,9 +44,16 @@ interface ReviewItem {
 interface Props {
   initialReviews: ReviewItem[];
   tours: Array<{ id: string; title: string }>;
+  userRole?: string;
+  userEmail?: string;
 }
 
-export default function ReviewManagerClient({ initialReviews, tours }: Props) {
+export default function ReviewManagerClient({
+  initialReviews,
+  tours,
+  userRole = 'OPERATOR',
+  userEmail = 'operator@zansafarihorizon.com',
+}: Props) {
   const [reviews, setReviews] = useState<ReviewItem[]>(initialReviews);
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
 
@@ -183,30 +191,29 @@ export default function ReviewManagerClient({ initialReviews, tours }: Props) {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* Header */}
-      <header className="bg-slate-900/80 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/operator"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-white">Guest Reviews & Feedback</h1>
-            <p className="text-xs text-slate-400">Import TripAdvisor/Google reviews and publish testimonials</p>
-          </div>
+      {/* 1. Unified Operator Navigation */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+        operatorName="Zansafari Horizon"
+      />
+
+      {/* 2. Action Toolbar */}
+      <div className="bg-slate-900/60 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-base sm:text-lg font-bold text-white">Guest Reviews & Feedback</h1>
+          <p className="text-xs text-slate-400">Import TripAdvisor/Google reviews and publish testimonials</p>
         </div>
 
         <button
           type="button"
           onClick={startNew}
-          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>Add Review</span>
         </button>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">

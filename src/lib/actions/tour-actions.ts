@@ -187,12 +187,12 @@ export async function saveTourAction(data: TourFormData) {
 }
 
 export async function toggleTourActiveAction(tourId: string, isActive: boolean) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
 
   const tour = await prisma.tour.findUnique({ where: { id: tourId } });
   if (!tour) throw new Error('Tour not found.');
-  if (user.role === Role.OPERATOR && scopedOperatorId && tour.operatorId !== scopedOperatorId) {
+  if ((user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) && scopedOperatorId && tour.operatorId && tour.operatorId !== scopedOperatorId) {
     throw new Error('403 Forbidden: You do not have permission to modify this tour.');
   }
 
@@ -220,12 +220,12 @@ export async function toggleTourActiveAction(tourId: string, isActive: boolean) 
 }
 
 export async function deleteTourAction(tourId: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
   const scopedOperatorId = await getScopedOperatorId();
 
   const tour = await prisma.tour.findUnique({ where: { id: tourId } });
   if (!tour) throw new Error('Tour not found.');
-  if (user.role === Role.OPERATOR && scopedOperatorId && tour.operatorId !== scopedOperatorId) {
+  if ((user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) && scopedOperatorId && tour.operatorId && tour.operatorId !== scopedOperatorId) {
     throw new Error('403 Forbidden: You do not have permission to delete this tour.');
   }
 

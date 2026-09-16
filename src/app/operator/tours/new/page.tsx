@@ -5,7 +5,7 @@ import { Role } from '@prisma/client';
 import TourEditorClient from '@/components/operator/TourEditorClient';
 
 export default async function NewTourPage() {
-  await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const categories = await prisma.tourCategory.findMany({
     where: { isActive: true },

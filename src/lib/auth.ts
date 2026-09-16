@@ -56,7 +56,12 @@ export async function requireRole(
     ? [...allowedRoles, ...additionalRoles]
     : [allowedRoles, ...additionalRoles];
 
-  const isAuthorized = roleList.includes(user.role) || user.role === Role.PLATFORM_ADMIN;
+  // PLATFORM_ADMIN holds superuser access to everything.
+  // COMPANY_ADMIN holds managerial executive access to all OPERATOR functions.
+  const isAuthorized =
+    roleList.includes(user.role) ||
+    user.role === Role.PLATFORM_ADMIN ||
+    (user.role === Role.COMPANY_ADMIN && roleList.includes(Role.OPERATOR));
 
   if (!isAuthorized) {
     throw new Error("403 Forbidden: You do not have permission to access this resource.");

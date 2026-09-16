@@ -15,6 +15,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { saveFaqAction, deleteFaqAction } from '@/lib/actions/faq-actions';
+import OperatorNav from '@/components/operator/OperatorNav';
 
 interface FaqItem {
   id: string;
@@ -25,7 +26,17 @@ interface FaqItem {
   isActive: boolean;
 }
 
-export default function FaqManagerClient({ initialFaqs }: { initialFaqs: FaqItem[] }) {
+interface Props {
+  initialFaqs: FaqItem[];
+  userRole?: string;
+  userEmail?: string;
+}
+
+export default function FaqManagerClient({
+  initialFaqs,
+  userRole = 'OPERATOR',
+  userEmail = 'operator@zansafarihorizon.com',
+}: Props) {
   const [faqs, setFaqs] = useState<FaqItem[]>(initialFaqs);
   const [editingFaqId, setEditingFaqId] = useState<string | null>(null);
 
@@ -110,30 +121,29 @@ export default function FaqManagerClient({ initialFaqs }: { initialFaqs: FaqItem
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* Header */}
-      <header className="bg-slate-900/80 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/operator"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-white">Frequently Asked Questions (FAQ)</h1>
-            <p className="text-xs text-slate-400">Manage tourist knowledgebase and booking clarity</p>
-          </div>
+      {/* 1. Unified Operator Navigation */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+        operatorName="Zansafari Horizon"
+      />
+
+      {/* 2. Action Toolbar */}
+      <div className="bg-slate-900/60 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-base sm:text-lg font-bold text-white">Frequently Asked Questions (FAQ)</h1>
+          <p className="text-xs text-slate-400">Manage tourist knowledgebase and booking clarity</p>
         </div>
 
         <button
           type="button"
           onClick={startNew}
-          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>New Question</span>
         </button>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">

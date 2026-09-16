@@ -13,7 +13,7 @@ export async function saveCategoryAction(data: {
   sortOrder?: number;
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const cleanSlug = data.slug
     .trim()
@@ -73,7 +73,7 @@ export async function saveCategoryAction(data: {
 }
 
 export async function deleteCategoryAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   // Check if category has tours
   const count = await prisma.tour.count({ where: { categoryId: id } });

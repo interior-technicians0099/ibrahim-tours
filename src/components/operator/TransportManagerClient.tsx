@@ -279,30 +279,29 @@ export default function TransportManagerClient({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* Header */}
-      <header className="bg-slate-900/80 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/operator"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-white">Transfers & Fleet Logistics</h1>
-            <p className="text-xs text-slate-400">Routes, 4-tier passenger pricing, and vehicles</p>
-          </div>
+      {/* 1. Unified Operator Navigation */}
+      <OperatorNav
+        userRole={userRole}
+        userEmail={userEmail}
+        operatorName="Zansafari Horizon"
+      />
+
+      {/* 2. Action Toolbar */}
+      <div className="bg-slate-900/60 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-base sm:text-lg font-bold text-white">Transfers & Fleet Logistics</h1>
+          <p className="text-xs text-slate-400">Routes, 4-tier passenger pricing, and vehicles</p>
         </div>
 
         <button
           type="button"
           onClick={activeTab === 'routes' ? startNewRoute : startNewVehicle}
-          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+          className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-extrabold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4" />
           <span>{activeTab === 'routes' ? 'New Route' : 'New Vehicle'}</span>
         </button>
-      </header>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">

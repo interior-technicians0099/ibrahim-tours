@@ -13,7 +13,7 @@ export async function saveFaqAction(data: {
   sortOrder?: number;
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   let faq;
   if (data.id) {
@@ -67,7 +67,7 @@ export async function saveFaqAction(data: {
 }
 
 export async function deleteFaqAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const faq = await prisma.faq.delete({ where: { id } });
 

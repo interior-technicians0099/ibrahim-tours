@@ -196,18 +196,31 @@ export default function MediaManager({
 
       {/* Error Banner */}
       {errorMessage && (
-        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{errorMessage}</span>
+        <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span className="font-semibold">{errorMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setErrorMessage(null)}
+              className="p-1 hover:bg-rose-500/20 rounded-lg text-rose-400"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setErrorMessage(null)}
-            className="p-1 hover:bg-rose-500/20 rounded-lg text-rose-400"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          {errorMessage.toLowerCase().includes('cloudinary environment credentials') && (
+            <div className="text-[11px] text-rose-200/90 bg-rose-950/40 p-2.5 rounded-lg border border-rose-900/50 leading-relaxed">
+              💡 <strong>Jinsi ya kurekebisha kwenye Vercel:</strong> Nenda kwenye <strong>Vercel Dashboard → Project Settings → Environment Variables</strong> kisha ongeza:
+              <ul className="list-disc list-inside mt-1 space-y-0.5 font-mono text-[10px] text-amber-300">
+                <li>CLOUDINARY_CLOUD_NAME</li>
+                <li>CLOUDINARY_API_KEY</li>
+                <li>CLOUDINARY_API_SECRET</li>
+              </ul>
+              Kisha fanya <strong>Redeploy</strong> kwenye Vercel ili zianze kufanya kazi.
+            </div>
+          )}
         </div>
       )}
 

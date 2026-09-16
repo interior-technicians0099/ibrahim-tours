@@ -5,7 +5,7 @@ import { Role } from '@prisma/client';
 import CategoryManagerClient from '@/components/operator/CategoryManagerClient';
 
 export default async function OperatorCategoriesPage() {
-  await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
 
   const categories = await prisma.tourCategory.findMany({
     include: {
@@ -16,5 +16,11 @@ export default async function OperatorCategoriesPage() {
     orderBy: { sortOrder: 'asc' },
   });
 
-  return <CategoryManagerClient initialCategories={categories} />;
+  return (
+    <CategoryManagerClient
+      initialCategories={categories}
+      userRole={user.role}
+      userEmail={user.email}
+    />
+  );
 }
