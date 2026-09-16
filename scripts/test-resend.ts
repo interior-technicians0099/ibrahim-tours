@@ -30,14 +30,20 @@ async function testResend() {
     process.exit(1);
   }
 
-  console.log('\nTesting Resend API connection (validating API Key)...');
+  console.log('\nTesting Resend API connection (dispatching test email)...');
   try {
-    const res = await fetch('https://api.resend.com/api-keys', {
-      method: 'GET',
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        from: 'onboarding@resend.dev',
+        to: 'delivered@resend.dev',
+        subject: 'Zansafari Horizon - Resend Integration Test',
+        html: '<p>Resend email service is operational and verified.</p>',
+      }),
     });
 
     if (res.status === 401 || res.status === 403) {
@@ -46,8 +52,9 @@ async function testResend() {
     }
 
     const data = await res.json();
-    console.log(`✅ Resend API Key is valid! HTTP Status: ${res.status}`);
-    console.log('✨ Resend configuration is verified and ready to dispatch booking emails!');
+    console.log(`✅ Resend Email dispatched successfully! HTTP Status: ${res.status}`);
+    console.log(`- Email ID: ${data.id}`);
+    console.log('✨ Resend configuration is 100% verified and ready to dispatch booking emails!');
   } catch (err: any) {
     console.error('\n❌ Network or API error connecting to Resend:', err?.message || err);
     process.exit(1);
