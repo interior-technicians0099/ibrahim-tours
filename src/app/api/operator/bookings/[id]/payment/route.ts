@@ -209,9 +209,11 @@ export async function POST(
         leadGuidePhone: companyProfile.leadGuidePhone,
       };
 
-      sendBookingConfirmedNotifications(confirmedDetails, baseUrl).catch((err) =>
-        console.error('Failed to dispatch confirmed notification:', err)
-      );
+      try {
+        await sendBookingConfirmedNotifications(confirmedDetails, baseUrl);
+      } catch (err) {
+        console.error('Failed to dispatch confirmed notification:', err);
+      }
     }
 
     const remainingCents = Math.max(0, targetPrice - newTotalPaid);

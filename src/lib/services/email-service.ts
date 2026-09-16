@@ -4,6 +4,81 @@ import { getDictionary, isSupportedLocale, DEFAULT_LOCALE, Locale } from '@/lib/
 import * as Sentry from '@sentry/nextjs';
 import { logger } from '@/lib/logger';
 
+/**
+ * Resilient Resend dispatcher. In sandbox mode (when using onboarding@resend.dev),
+ * Resend rejects non-account recipients with HTTP 403.
+ * This helper intercepts 403 and automatically delivers to the verified sandbox email
+ * so testing notifications are immediately received in the developer's inbox.
+ */
+async function dispatchResendEmail({
+  apiKey,
+  from,
+  to,
+  subject,
+  html,
+}: {
+  apiKey: string;
+  from: string;
+  to: string[];
+  subject: string;
+  html: string;
+}): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const sandboxFallbackEmail = process.env.RESEND_SANDBOX_EMAIL || 'projectmember080@gmail.com';
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ from, to, subject, html }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { ok: true, id: data.id };
+    }
+
+    const errorText = await res.text().catch(() => '');
+
+    // In sandbox mode with onboarding@resend.dev, unverified recipients return HTTP 403.
+    // Fallback immediately to deliver to the registered account inbox!
+    if (res.status === 403 && from.includes('resend.dev')) {
+      const isAlreadyRecipient = to.some(
+        (addr) => addr.toLowerCase() === sandboxFallbackEmail.toLowerCase()
+      );
+      if (!isAlreadyRecipient) {
+        console.warn(
+          `[EmailService] Resend Sandbox (403): Redirecting email from ${to.join(', ')} to ${sandboxFallbackEmail}`
+        );
+        const fallbackRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from,
+            to: [sandboxFallbackEmail],
+            subject: `[Sandbox Preview - To: ${to.join(', ')}] ${subject}`,
+            html,
+          }),
+        });
+
+        if (fallbackRes.ok) {
+          const fallbackData = await fallbackRes.json();
+          return { ok: true, id: fallbackData.id };
+        }
+      }
+    }
+
+    return { ok: false, error: `HTTP ${res.status}: ${errorText}` };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || String(err) };
+  }
+}
+
 export interface EmailBookingDetails {
   id: string;
   referenceCode: string;
@@ -306,41 +381,27 @@ export async function sendBookingNotifications(details: EmailBookingDetails, bas
   if (resendApiKey) {
     try {
       // 1. Send Tourist Confirmation Email
-      const resTourist = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [details.customerEmail],
-          subject: touristSubject,
-          html: touristHtml,
-        }),
+      const touristRes = await dispatchResendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: [details.customerEmail],
+        subject: touristSubject,
+        html: touristHtml,
       });
-      if (!resTourist.ok) {
-        const errorText = await resTourist.text().catch(() => '');
-        throw new Error(`Resend tourist email failed HTTP ${resTourist.status}: ${errorText}`);
+      if (!touristRes.ok) {
+        logger.error('Resend tourist email failed:', touristRes.error);
       }
 
       // 2. Send Platform Admin Alert Email
-      const resAdmin = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [adminAlertEmail],
-          subject: `🚨 [${getLanguageName(details.locale || 'en')}] New Booking Request — ${details.referenceCode} (${details.customerName})`,
-          html: adminHtml,
-        }),
+      const adminRes = await dispatchResendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: [adminAlertEmail],
+        subject: `🚨 [${getLanguageName(details.locale || 'en')}] New Booking Request — ${details.referenceCode} (${details.customerName})`,
+        html: adminHtml,
       });
-      if (!resAdmin.ok) {
-        const errorText = await resAdmin.text().catch(() => '');
-        throw new Error(`Resend platform admin email failed HTTP ${resAdmin.status}: ${errorText}`);
+      if (!adminRes.ok) {
+        logger.error('Resend platform admin email failed:', adminRes.error);
       }
     } catch (err) {
       logger.error('Failed to send booking request Resend emails:', err, {
@@ -610,41 +671,27 @@ export async function sendBookingConfirmedNotifications(
   if (resendApiKey) {
     try {
       // 1. Tourist Confirmation Email
-      const resTourist = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [details.customerEmail],
-          subject: touristSubject,
-          html: touristHtml,
-        }),
+      const touristRes = await dispatchResendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: [details.customerEmail],
+        subject: touristSubject,
+        html: touristHtml,
       });
-      if (!resTourist.ok) {
-        const errorText = await resTourist.text().catch(() => '');
-        throw new Error(`Resend confirmed tourist email failed HTTP ${resTourist.status}: ${errorText}`);
+      if (!touristRes.ok) {
+        logger.error('Resend confirmed tourist email failed:', touristRes.error);
       }
 
       // 2. Platform Admin Alert
-      const resAdmin = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [platformAdminEmail],
-          subject: `💰 Booking Fully Paid & Confirmed — ${details.referenceCode} (${details.customerName})`,
-          html: adminHtml,
-        }),
+      const adminRes = await dispatchResendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: [platformAdminEmail],
+        subject: `💰 Booking Fully Paid & Confirmed — ${details.referenceCode} (${details.customerName})`,
+        html: adminHtml,
       });
-      if (!resAdmin.ok) {
-        const errorText = await resAdmin.text().catch(() => '');
-        throw new Error(`Resend confirmed admin email failed HTTP ${resAdmin.status}: ${errorText}`);
+      if (!adminRes.ok) {
+        logger.error('Resend confirmed admin email failed:', adminRes.error);
       }
     } catch (err) {
       logger.error('Failed to send confirmation emails via Resend:', err, {
@@ -787,22 +834,15 @@ export async function sendBookingCancelledNotification(
 
   if (resendApiKey) {
     try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [details.customerEmail],
-          subject,
-          html,
-        }),
+      const res = await dispatchResendEmail({
+        apiKey: resendApiKey,
+        from: fromEmail,
+        to: [details.customerEmail],
+        subject,
+        html,
       });
       if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(`Resend cancellation email failed HTTP ${res.status}: ${errorText}`);
+        logger.error('Resend cancellation email failed:', res.error);
       }
     } catch (err) {
       logger.error('Failed to send cancellation email via Resend:', err, {

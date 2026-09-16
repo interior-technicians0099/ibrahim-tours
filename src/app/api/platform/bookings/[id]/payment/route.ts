@@ -213,9 +213,11 @@ export async function POST(
         leadGuidePhone: companyProfile.leadGuidePhone,
       };
 
-      sendBookingConfirmedNotifications(confirmedDetails, baseUrl).catch((err) =>
-        console.error('[PaymentRoute] Failed to dispatch tourist confirmed notification:', err)
-      );
+      try {
+        await sendBookingConfirmedNotifications(confirmedDetails, baseUrl);
+      } catch (err) {
+        console.error('[PaymentRoute] Failed to dispatch tourist confirmed notification:', err);
+      }
 
       // B. Send official Work Order email to Ibrahim (lead guide) with Uhakiki code
       const workOrderDetails = {
@@ -245,9 +247,11 @@ export async function POST(
         verificationCode: issuedReceipt?.verificationCode,
       };
 
-      sendWorkOrderNotification(workOrderDetails, baseUrl).catch((err) =>
-        console.error('[PaymentRoute] Failed to dispatch Ibrahim work order email:', err)
-      );
+      try {
+        await sendWorkOrderNotification(workOrderDetails, baseUrl);
+      } catch (err) {
+        console.error('[PaymentRoute] Failed to dispatch Ibrahim work order email:', err);
+      }
 
       // C. Build WhatsApp link to Ibrahim for Platform Admin one-tap access with Uhakiki code
       workOrderWhatsAppUrl = buildWorkOrderWhatsAppUrl({

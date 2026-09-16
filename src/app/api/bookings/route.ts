@@ -345,10 +345,12 @@ export async function POST(request: NextRequest) {
       operatorWhatsApp: (operator as any).whatsapp || undefined,
     };
 
-    // Fire emails asynchronously (never blocks response)
-    sendBookingNotifications(emailDetails, baseUrl).catch((e) =>
-      console.error('Async email notification error:', e)
-    );
+    // Await email dispatch so Vercel serverless lambda does not terminate prematurely
+    try {
+      await sendBookingNotifications(emailDetails, baseUrl);
+    } catch (e) {
+      console.error('Email notification error:', e);
+    }
 
     return NextResponse.json({
       success: true,
