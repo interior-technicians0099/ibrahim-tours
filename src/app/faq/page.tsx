@@ -75,8 +75,13 @@ export default function FAQPage() {
           <div className="space-y-3">
             {FAQ_ITEMS.map((faq, index) => {
               const isOpen = openIndex === index;
-              const questionText = t(`faq.q${faq.id}`) || faq.question;
-              const answerText = t(`faq.a${faq.id}`) || faq.answer;
+              const numId = faq.id.replace(/^faq-/, '');
+              const qKey = `faq.q${numId}`;
+              const aKey = `faq.a${numId}`;
+              const translatedQ = t(qKey);
+              const translatedA = t(aKey);
+              const questionText = translatedQ && translatedQ !== qKey ? translatedQ : faq.question;
+              const answerText = translatedA && translatedA !== aKey ? translatedA : faq.answer;
 
               return (
                 <div
