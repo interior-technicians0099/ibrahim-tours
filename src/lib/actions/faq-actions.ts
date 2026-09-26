@@ -13,7 +13,7 @@ export async function saveFaqAction(data: {
   sortOrder?: number;
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   let faq;
   if (data.id) {
@@ -60,14 +60,14 @@ export async function saveFaqAction(data: {
   }
 
   revalidatePath('/faq');
-  revalidatePath('/operator/faqs');
+  revalidatePath('/platform/content/faqs');
   revalidatePath('/');
 
   return { success: true, faq };
 }
 
 export async function deleteFaqAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   const faq = await prisma.faq.delete({ where: { id } });
 
@@ -82,7 +82,7 @@ export async function deleteFaqAction(id: string) {
   });
 
   revalidatePath('/faq');
-  revalidatePath('/operator/faqs');
+  revalidatePath('/platform/content/faqs');
   revalidatePath('/');
 
   return { success: true };

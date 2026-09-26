@@ -218,7 +218,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
       if (result.success) {
         setSuccessMessage('Excursion tour saved successfully.');
         setTimeout(() => {
-          router.push('/operator/tours');
+          router.push('/platform/content/tours');
           router.refresh();
         }, 1000);
       }
@@ -236,7 +236,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
     setIsDeleting(true);
     try {
       await deleteTourAction(initialTour.id);
-      router.push('/operator/tours');
+      router.push('/platform/content/tours');
       router.refresh();
     } catch (err: any) {
       setErrorMessage(err?.message || 'Failed to delete tour.');
@@ -250,7 +250,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
       <header className="bg-slate-900/90 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Link
-            href="/operator/tours"
+            href="/platform/content/tours"
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -702,7 +702,7 @@ export default function TourEditorClient({ initialTour, categories }: Props) {
           {/* Bottom Action Bar */}
           <div className="flex items-center justify-between pt-4 border-t border-slate-800">
             <Link
-              href="/operator/tours"
+              href="/platform/content/tours"
               className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-colors"
             >
               Cancel

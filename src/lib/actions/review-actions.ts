@@ -20,7 +20,7 @@ export async function saveReviewAction(data: {
   isFeatured?: boolean;
   adminResponse?: string;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   let review: any;
   if (data.id) {
@@ -81,14 +81,14 @@ export async function saveReviewAction(data: {
   }
 
   revalidatePath('/reviews');
-  revalidatePath('/operator/reviews');
+  revalidatePath('/platform/content/reviews');
   revalidatePath('/');
 
   return { success: true, review };
 }
 
 export async function toggleReviewPublishedAction(id: string, isPublished: boolean) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   const review = await prisma.review.update({
     where: { id },
@@ -106,14 +106,14 @@ export async function toggleReviewPublishedAction(id: string, isPublished: boole
   });
 
   revalidatePath('/reviews');
-  revalidatePath('/operator/reviews');
+  revalidatePath('/platform/content/reviews');
   revalidatePath('/');
 
   return { success: true, isPublished: review.isPublished };
 }
 
 export async function deleteReviewAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   const review = await prisma.review.delete({ where: { id } });
 
@@ -128,7 +128,7 @@ export async function deleteReviewAction(id: string) {
   });
 
   revalidatePath('/reviews');
-  revalidatePath('/operator/reviews');
+  revalidatePath('/platform/content/reviews');
   revalidatePath('/');
 
   return { success: true };

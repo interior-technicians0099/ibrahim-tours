@@ -1,14 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth-helpers';
-import {
-  assertConfirmationAllowed,
-  assertManualStatusTransitionAllowed,
-} from '@/lib/services/booking-gate';
-import { sendBookingCancelledNotification } from '@/lib/services/email-service';
-import { Role, BookingStatus, PaymentStatus, Prisma } from '@prisma/client';
-import { updateBookingStatusSchema } from '@/lib/validations/payment';
+import { assertManualStatusTransitionAllowed } from '@/lib/services/booking-gate';
+import { sendTourCompletedNotification } from '@/lib/services/email-service';
+import { toOperatorBookingDto } from '@/lib/serialization';
+import { Role, BookingStatus, Prisma } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
+/**
+ * P1 — OPERATOR completion endpoint. The ONLY status change an operator may
+ * perform is CONFIRMED → COMPLETED, and only for bookings forwarded to them
+ * (i.e. having at least one OperatorInbox message) within their scope.
+ * Everything else (cancel, reject, payments) is super-admin only.
+ * Responses are serialized via toOperatorBookingDto — zero financial data.
+ */
 export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -17,20 +23,19 @@ export async function PATCH(
     const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN]);
     const { id: bookingId } = await context.params;
 
-    const body = await request.json();
-    const parseResult = updateBookingStatusSchema.safeParse(body);
-
-    if (!parseResult.success) {
-      return NextResponse.json(
-        {
-          error: 'Invalid status details. Please check all fields.',
-          details: parseResult.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
     }
 
-    const { status: targetStatus, reason, operatorNotes } = parseResult.data;
+    if (body.status !== BookingStatus.COMPLETED) {
+      return NextResponse.json(
+        { error: 'Operators may only mark tours as COMPLETED.' },
+        { status: 403 }
+      );
+    }
 
     const booking = await prisma.booking.findUnique({
       where: { id: bookingId },
@@ -39,6 +44,10 @@ export async function PATCH(
         transportService: true,
         route: true,
         operator: true,
+        inboxMessages: {
+          orderBy: { sentAt: 'desc' },
+          select: { id: true, sentAt: true, readAt: true },
+        },
       },
     });
 
@@ -46,123 +55,95 @@ export async function PATCH(
       return NextResponse.json({ error: 'Booking not found.' }, { status: 404 });
     }
 
+    // Operator scope: can only complete own operator's bookings
     if (user.role === Role.OPERATOR && user.operatorId && booking.operatorId !== user.operatorId) {
       return NextResponse.json(
-        { error: 'Forbidden: You do not have permission to modify this booking.' },
+        { error: 'Forbidden: This booking was not assigned to you.' },
         { status: 403 }
       );
     }
 
-    // Guardrail Check: Enforce manual transition rules
-    // Throws if CONFIRMED is manually selected, or COMPLETED is premature, or REJECTED/CANCELLED lacks reason
-    assertManualStatusTransitionAllowed(
-      booking.status,
-      targetStatus,
-      booking.paymentStatus,
-      reason
-    );
-
-    // Also assert invariant confirmation check
-    assertConfirmationAllowed(targetStatus, booking.paymentStatus);
-
-    const forwardedFor = request.headers.get('x-forwarded-for');
-    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
-
-    // If moving to COMPLETED, snapshot commission economics
-    let profitCents = booking.profitCents;
-    let commissionRate = booking.commissionRate;
-    let commissionAmountCents = booking.commissionAmountCents;
-    let commissionStatus = booking.commissionStatus;
-
-    if (targetStatus === BookingStatus.COMPLETED) {
-      const { resolveEffectiveCommissionRate, calculateCommission } = await import(
-        '@/lib/commission'
+    // Forwarded-only visibility: operator learns about bookings via inbox
+    if (booking.inboxMessages.length === 0) {
+      return NextResponse.json(
+        { error: 'Forbidden: This booking has not been forwarded to the operator.' },
+        { status: 403 }
       );
-      const effectiveRate = await resolveEffectiveCommissionRate(booking.operatorId);
-      const computed = calculateCommission(
-        booking.amountPaidCents || booking.totalPriceCents || 0,
-        booking.costCents,
-        effectiveRate
-      );
-
-      profitCents = computed.profitCents;
-      commissionRate =
-        computed.commissionRate !== null
-          ? new Prisma.Decimal((computed.commissionRate / 100).toFixed(4))
-          : null;
-      commissionAmountCents = computed.commissionAmountCents;
-      commissionStatus = computed.status;
     }
 
-    const isCancellation =
-      targetStatus === BookingStatus.CANCELLED || targetStatus === BookingStatus.REJECTED;
+    if (booking.status !== BookingStatus.CONFIRMED) {
+      return NextResponse.json(
+        { error: `Only CONFIRMED tours can be marked completed (current: ${booking.status}).` },
+        { status: 400 }
+      );
+    }
+
+    // Invariant: only CONFIRMED + PAID_IN_FULL tours can be completed
+    assertManualStatusTransitionAllowed(booking.status, BookingStatus.COMPLETED, booking.paymentStatus);
+
+    // Snapshot commission economics for super-admin finalization
+    const { resolveEffectiveCommissionRate, calculateCommission } = await import(
+      '@/lib/commission'
+    );
+    const effectiveRate = await resolveEffectiveCommissionRate(booking.operatorId);
+    const computed = calculateCommission(
+      booking.amountPaidCents || booking.totalPriceCents || 0,
+      booking.costCents,
+      effectiveRate
+    );
 
     const updatedBooking = await prisma.booking.update({
       where: { id: booking.id },
       data: {
-        status: targetStatus,
-        confirmedAt:
-          targetStatus === BookingStatus.CONFIRMED
-            ? booking.confirmedAt || new Date()
-            : booking.confirmedAt,
-        cancelledAt: isCancellation ? new Date() : booking.cancelledAt,
-        cancellationReason: isCancellation ? reason?.trim() : booking.cancellationReason,
-        operatorNotes: operatorNotes !== undefined && operatorNotes !== null ? operatorNotes : booking.operatorNotes,
-        ...(targetStatus === BookingStatus.COMPLETED
-          ? {
-              profitCents,
-              commissionRate: commissionRate !== null ? commissionRate : null,
-              commissionAmountCents,
-              commissionStatus,
-            }
-          : {}),
+        status: BookingStatus.COMPLETED,
+        profitCents: computed.profitCents,
+        commissionRate:
+          computed.commissionRate !== null
+            ? new Prisma.Decimal((computed.commissionRate / 100).toFixed(4))
+            : null,
+        commissionAmountCents: computed.commissionAmountCents,
+        commissionStatus: computed.status,
       },
       include: {
-        payments: { orderBy: { createdAt: 'desc' } },
         tour: true,
         route: true,
+        inboxMessages: {
+          orderBy: { sentAt: 'desc' },
+          take: 5,
+          select: { id: true, sentAt: true, readAt: true },
+        },
       },
     });
 
-    // Determine audit action
-    let auditAction = 'STATUS_CHANGED';
-    if (targetStatus === BookingStatus.COMPLETED) {
-      auditAction = 'BOOKING_COMPLETED';
-    }
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
 
     await prisma.auditLog.create({
       data: {
         userId: user.id,
-        action: auditAction,
+        action: 'TOUR_COMPLETED_BY_OPERATOR',
         entityType: 'Booking',
         entityId: booking.id,
         details: {
           referenceCode: booking.referenceCode,
           previousStatus: booking.status,
-          newStatus: targetStatus,
-          paymentStatus: booking.paymentStatus,
-          reason: isCancellation ? reason?.trim() : undefined,
-          profitCents,
-          commissionRate,
-          commissionAmountCents,
-          operatorNotes,
+          newStatus: BookingStatus.COMPLETED,
+          operatorName: user.name,
         },
         ipAddress: clientIp,
       },
     });
 
-    // If cancelled or rejected, dispatch localized tourist email notification
-    if (isCancellation && reason) {
-      const serviceTitle =
-        booking.serviceType === 'TOUR'
-          ? booking.tour?.title || 'Island Tour'
-          : `${booking.pickupLocation || 'Pickup'} → ${booking.dropoffLocation || 'Drop-off'}`;
+    // Notify super admin (in-app Notification row + email)
+    const serviceTitle =
+      booking.serviceType === 'TOUR'
+        ? booking.tour?.title || 'Zanzibar Tour'
+        : `${booking.pickupLocation || 'Pickup'} → ${booking.dropoffLocation || 'Drop-off'}`;
 
-      sendBookingCancelledNotification({
+    try {
+      await sendTourCompletedNotification({
         bookingId: booking.id,
         referenceCode: booking.referenceCode,
-        customerName: booking.customerName,
-        customerEmail: booking.customerEmail,
         serviceTitle,
         bookingDate: new Date(booking.bookingDate).toLocaleDateString('en-US', {
           weekday: 'short',
@@ -170,23 +151,28 @@ export async function PATCH(
           month: 'short',
           day: 'numeric',
         }),
-        reason: reason.trim(),
-        status: targetStatus === BookingStatus.REJECTED ? 'REJECTED' : 'CANCELLED',
-        locale: booking.locale,
-        operatorWhatsApp: booking.operator?.whatsapp || undefined,
-      }).catch((err) => console.error('Failed to dispatch cancellation email:', err));
+        bookingTime: booking.bookingTime || undefined,
+        customerName: booking.customerName,
+        operatorName:
+          booking.operator?.companyName || booking.operator?.businessName || user.name || 'Operator',
+        completedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.error('[OperatorStatus] Failed to dispatch completion notification:', err);
     }
 
     return NextResponse.json({
       success: true,
-      booking: updatedBooking,
-      message: `Booking status updated to ${targetStatus}.`,
+      booking: toOperatorBookingDto(updatedBooking),
+      message: `Tour ${booking.referenceCode} marked as COMPLETED. Super admin has been notified.`,
     });
   } catch (error: any) {
-    console.error('Error updating booking status:', error);
-    return NextResponse.json(
-      { error: error?.message || 'Failed to update booking status.' },
-      { status: error?.message?.includes('Invariant') || error?.message?.includes('Cannot') || error?.message?.includes('Manual') || error?.message?.includes('mandatory') ? 400 : 500 }
-    );
+    console.error('Error completing tour:', error);
+    const msg = error?.message || 'Failed to mark tour as completed.';
+    const status =
+      msg.includes('403') || msg.includes('Forbidden') ? 403
+      : msg.includes('Invariant') || msg.includes('Only CONFIRMED') || msg.includes('Cannot complete') ? 400
+      : 500;
+    return NextResponse.json({ error: msg }, { status });
   }
 }

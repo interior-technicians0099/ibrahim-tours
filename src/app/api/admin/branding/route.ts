@@ -7,7 +7,7 @@ import { revalidateCompanyProfile } from '@/lib/company';
 
 export async function GET() {
   try {
-    const user = await requireRole([Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN, Role.OPERATOR]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const scopedOperatorId = await getScopedOperatorId();
     const profile =
       (scopedOperatorId ? await prisma.companyProfile.findUnique({ where: { id: scopedOperatorId } }) : null) ||
@@ -29,7 +29,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await requireRole([Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN, Role.OPERATOR]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const scopedOperatorId = await getScopedOperatorId();
     const existingProfile =
       (scopedOperatorId ? await prisma.companyProfile.findUnique({ where: { id: scopedOperatorId } }) : null) ||

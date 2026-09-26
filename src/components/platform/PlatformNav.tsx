@@ -17,6 +17,9 @@ import {
   FileCheck,
   ShieldCheck,
   Bell,
+  Wallet,
+  Layers,
+  UserCog,
 } from 'lucide-react';
 import LogoutButton from '@/components/auth/LogoutButton';
 import UhakikiModal from '@/components/platform/UhakikiModal';
@@ -33,11 +36,14 @@ export default function PlatformNav({ adminName, adminEmail }: Props) {
   const navItems = [
     { label: 'Overview', href: '/platform', icon: LayoutDashboard, exact: true },
     { label: 'Bookings Master', href: '/platform/bookings', icon: BookOpen },
+    { label: 'Content', href: '/platform/content', icon: Layers },
+    { label: 'Pay Methods', href: '/platform/payment-methods', icon: Wallet },
     { label: 'Receipts', href: '/platform/receipts', icon: FileCheck },
     { label: 'Notifications', href: '/platform/notifications', icon: Bell },
     { label: 'Reconciliation', href: '/platform/reconciliation', icon: Scale },
     { label: 'Settlements', href: '/platform/settlements', icon: Receipt },
     { label: 'Operators & Trust', href: '/platform/operators', icon: Users },
+    { label: 'Users', href: '/platform/users', icon: UserCog },
     { label: 'Audit Logs', href: '/platform/audit-logs', icon: History },
     { label: 'Branding & Logo', href: '/platform/branding', icon: Sparkles },
     { label: 'Settings', href: '/platform/settings', icon: Settings },

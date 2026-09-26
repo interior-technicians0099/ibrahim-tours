@@ -141,6 +141,41 @@ export interface Dictionary {
     refCode: string;
     alertTitle: string;
     alertDesc: string;
+    availabilityNotice: string;
+    confirmedPaidLine: string;
+    arrivalTitle: string;
+    arrivalDesc: string;
+    verifyOnlineCta: string;
+    viewReceiptCta: string;
+    guideIntroTitle: string;
+    guideIntroBody: string;
+    cancelledSubject: string;
+    cancelledBody: string;
+    cancelledAlt: string;
+    cancelledCta: string;
+    confirmedSubject: string;
+    paidInFullBadge: string;
+    officialReceiptBadge: string;
+    confirmedHeader: string;
+    uhakikiTitle: string;
+    uhakikiHelp: string;
+    paymentRecordedBadge: string;
+    amountPaidLabel: string;
+    paymentMethodLabel: string;
+    receiptNumberLabel: string;
+    paymentRefLabel: string;
+    verificationCodeLabel: string;
+    verifyOnlineCaption: string;
+    operationsNoteLabel: string;
+    requestDeclinedBadge: string;
+    requestCancelledBadge: string;
+    emailHello: string;
+    licensedGuideCard: string;
+    phoneWhatsappLabel: string;
+    chatGuideCta: string;
+    pickupDetailsLabel: string;
+    guideContactNote: string;
+    guideIntroSubject: string;
     summaryTitle: string;
     serviceRequested: string;
     tourTypeLabel: string;
@@ -225,6 +260,7 @@ export interface Dictionary {
     tourInquiry: string;
     transferInquiry: string;
     bookingConfirmation: string;
+    receiptConfirmed: string;
     faqQuestion: string;
   };
   common: {
@@ -234,5 +270,15 @@ export interface Dictionary {
     back: string;
     licensedGuide: string;
     securePaymentBadge: string;
+  };
+  paymentMethods: {
+    title: string;
+    instruction: string;
+    bankLabel: string;
+    cashLabel: string;
+    bankNameLabel: string;
+    accountNameLabel: string;
+    accountNumberLabel: string;
+    numberLabel: string;
   };
 }

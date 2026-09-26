@@ -5,7 +5,7 @@ import { verifyReceiptCode } from '@/lib/services/receipt-service';
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    await requireRole([Role.PLATFORM_ADMIN]);
 
     const { searchParams } = new URL(request.url);
     const code = searchParams.get('code') || '';

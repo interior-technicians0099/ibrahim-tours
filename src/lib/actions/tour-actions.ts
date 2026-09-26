@@ -40,7 +40,7 @@ export interface TourFormData {
 }
 
 export async function saveTourAction(data: TourFormData) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
   const scopedOperatorId = await getScopedOperatorId();
   const effectiveOperatorId = scopedOperatorId || (await prisma.companyProfile.findFirst())?.id || 'operator-ibrahim';
 
@@ -181,13 +181,13 @@ export async function saveTourAction(data: TourFormData) {
   revalidatePath('/tours');
   revalidatePath(`/tours/${savedTour.slug}`);
   revalidatePath('/');
-  revalidatePath('/operator/tours');
+  revalidatePath('/platform/content/tours');
 
   return { success: true, tour: savedTour };
 }
 
 export async function toggleTourActiveAction(tourId: string, isActive: boolean) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
   const scopedOperatorId = await getScopedOperatorId();
 
   const tour = await prisma.tour.findUnique({ where: { id: tourId } });
@@ -214,13 +214,13 @@ export async function toggleTourActiveAction(tourId: string, isActive: boolean) 
   revalidatePath('/tours');
   revalidatePath(`/tours/${tour.slug}`);
   revalidatePath('/');
-  revalidatePath('/operator/tours');
+  revalidatePath('/platform/content/tours');
 
   return { success: true, isActive: updated.isActive };
 }
 
 export async function deleteTourAction(tourId: string) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
   const scopedOperatorId = await getScopedOperatorId();
 
   const tour = await prisma.tour.findUnique({ where: { id: tourId } });
@@ -243,7 +243,7 @@ export async function deleteTourAction(tourId: string) {
 
   revalidatePath('/tours');
   revalidatePath('/');
-  revalidatePath('/operator/tours');
+  revalidatePath('/platform/content/tours');
 
   return { success: true };
 }

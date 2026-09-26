@@ -12,7 +12,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const { id: bookingId } = await context.params;
 
     const booking = await prisma.booking.findUnique({
@@ -21,6 +21,7 @@ export async function POST(
         tour: true,
         transportService: true,
         route: true,
+        operator: true,
       },
     });
 
@@ -60,6 +61,7 @@ export async function POST(
       bookingDate: tourDate,
       bookingTime: booking.bookingTime || undefined,
       pickupLocation: booking.pickupLocation || undefined,
+      traLicenseNumber: booking.operator?.traLicenseNumber || null,
     };
 
     sendGuideIntroNotification(introDetails).catch((err) =>

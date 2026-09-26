@@ -22,7 +22,7 @@ import {
   Lock,
 } from 'lucide-react';
 import MediaManager, { MediaItem } from '@/components/operator/MediaManager';
-import OperatorNav from '@/components/operator/OperatorNav';
+
 
 export interface BrandingData {
   id: string;
@@ -55,7 +55,7 @@ interface Props {
 
 export default function BrandingManagerClient({
   initialData,
-  userRole = 'COMPANY_ADMIN',
+  userRole = 'PLATFORM_ADMIN',
   userEmail = 'manager@zansafarihorizon.com',
   isReadOnly = false,
 }: Props) {
@@ -168,12 +168,6 @@ export default function BrandingManagerClient({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-24">
-      {/* Unified Role-Aware Navigation Bar */}
-      <OperatorNav
-        userRole={userRole}
-        userEmail={userEmail}
-      />
-
       {/* Action Sub-header */}
       <div className="bg-slate-900/40 border-b border-slate-800/80 px-4 sm:px-8 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">

@@ -5,7 +5,7 @@ import { markBookingCheckedIn } from '@/lib/services/receipt-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const body = await request.json();
     const code = body?.code;
 

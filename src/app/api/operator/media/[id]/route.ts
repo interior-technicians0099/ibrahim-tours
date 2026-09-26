@@ -15,10 +15,11 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized: Authentication required.' }, { status: 401 });
     }
-    if (user.role !== Role.OPERATOR && user.role !== Role.PLATFORM_ADMIN) {
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions.' }, { status: 403 });
+    // P1: media/content is super-admin only — OPERATOR portal has no content access.
+    if (user.role !== Role.PLATFORM_ADMIN) {
+      return NextResponse.json({ error: 'Forbidden: Platform Admin access required.' }, { status: 403 });
     }
-    const scopedOperatorId = user.role === Role.OPERATOR ? user.operatorId : null;
+    const scopedOperatorId = null;
 
     if (!id) {
       return NextResponse.json({ error: 'Asset ID is required.' }, { status: 400 });
@@ -28,9 +29,6 @@ export async function DELETE(
     const mediaAsset = await prisma.mediaAsset.findFirst({
       where: {
         OR: [{ id }, { publicId: id }],
-        ...(user.role === Role.OPERATOR && scopedOperatorId
-          ? { operatorId: scopedOperatorId }
-          : {}),
       },
     });
 

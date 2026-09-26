@@ -108,13 +108,14 @@ async function seedUsersAndCompany() {
       },
     });
 
-    // 2. Company Manager (COMPANY_ADMIN)
+    // 2. Company Manager — P1: COMPANY_ADMIN is retired (two portals only),
+    // so the manager account is provisioned as a second PLATFORM_ADMIN.
     await prisma.adminUser.upsert({
       where: { email: 'manager@zansafarihorizon.com' },
       update: {
         name: 'Company Manager',
         passwordHash: defaultZansafariHash,
-        role: Role.COMPANY_ADMIN,
+        role: Role.PLATFORM_ADMIN,
         operatorId: 'operator-ibrahim',
         isActive: true,
         mustChangePassword: false,
@@ -123,7 +124,7 @@ async function seedUsersAndCompany() {
         email: 'manager@zansafarihorizon.com',
         name: 'Company Manager',
         passwordHash: defaultZansafariHash,
-        role: Role.COMPANY_ADMIN,
+        role: Role.PLATFORM_ADMIN,
         operatorId: 'operator-ibrahim',
         isActive: true,
         mustChangePassword: false,

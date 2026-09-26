@@ -107,6 +107,7 @@ model AdminUser {
   paymentsRecorded Payment[]        @relation("PaymentsRecorded")
   receiptsIssued    Receipt[]        @relation("ReceiptsIssued")
   bookingsCheckedIn Booking[]        @relation("BookingsCheckedIn")
+  inboxMessagesSent OperatorInbox[]
 
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
@@ -355,6 +356,7 @@ model Booking {
   receipt               Receipt?
   payments              Payment[]
   notifications         Notification[]
+  inboxMessages         OperatorInbox[]
   reviews               Review[]
 }
 
@@ -467,6 +469,41 @@ model Notification {
   providerId   String?            // Resend email id on success
   sentAt    DateTime?
   createdAt DateTime              @default(now())
+}
+
+// --------------------------------------------------------
+// P1: OPERATOR INBOX — super admin → operator assignment feed.
+// A row here is the ONLY way an operator learns about a booking.
+// Created exclusively via the "Notify operator" super-admin action.
+// --------------------------------------------------------
+
+model OperatorInbox {
+  id        String    @id @default(cuid())
+  bookingId String
+  booking   Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  message   String    @db.Text
+  sentById  String?
+  sentBy    AdminUser? @relation(fields: [sentById], references: [id], onDelete: SetNull)
+  sentAt    DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([bookingId])
+  @@index([sentAt])
+}
+
+// --------------------------------------------------------
+// P1: PAYMENT METHOD SETTINGS — super-admin configured checkout
+// methods rendered to tourists (confirmation page + emails).
+// --------------------------------------------------------
+
+model PaymentMethodConfig {
+  id        String   @id @default(cuid())
+  code      String   @unique // MPESA | MIXX_BY_YAS | AIRTEL_MONEY | BANK | CASH
+  enabled   Boolean  @default(true)
+  label     String?  // Optional admin display override (else localized default)
+  details   Json     @default("{}") // {number} | {bankName,accountName,accountNumber} | {note}
+  sortOrder Int      @default(0)
+  updatedAt DateTime @updatedAt
 }
 
 model AuditLog {

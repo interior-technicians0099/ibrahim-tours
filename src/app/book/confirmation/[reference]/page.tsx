@@ -20,6 +20,8 @@ import {
   FileText,
 } from 'lucide-react';
 import { getDictionary, isSupportedLocale, DEFAULT_LOCALE, Locale } from '@/lib/i18n';
+import { getEnabledPaymentMethods } from '@/lib/payment-methods';
+import { fillTemplate } from '@/lib/services/email-service';
 
 interface PageProps {
   params: Promise<{ reference: string }>;
@@ -77,6 +79,12 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
     ? (resolvedLocale as Locale)
     : DEFAULT_LOCALE;
   const dict = getDictionary(locale);
+
+  // P1: only super-admin ENABLED payment methods are shown, localized.
+  const paymentMethods = await getEnabledPaymentMethods(locale).catch(() => []);
+  const paymentInstructionLine = fillTemplate(dict.paymentMethods.instruction, {
+    reference: reference,
+  });
 
   if (!booking) {
     return (
@@ -323,35 +331,20 @@ export default async function BookingConfirmationPage({ params }: PageProps) {
                 {paymentInstructions}
               </div>
 
-              {operator?.paymentNotes ? (
-                <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-xs text-amber-200/90 leading-relaxed">
-                  <strong className="text-amber-300 block mb-0.5">Transfer Note:</strong>
-                  {operator.paymentNotes}
-                </div>
-              ) : null}
-
-              {operator?.mpesaNumber ? (
-                <div className="mt-4 p-4 rounded-xl bg-emerald-950/30 border border-emerald-900/50">
-                  <span className="text-xs text-emerald-400/80 font-bold uppercase tracking-wider block mb-1">{dict.confirmation.mpesaLabel}</span>
-                  <span className="text-lg font-mono text-emerald-300">{operator.mpesaNumber}</span>
-                </div>
-              ) : null}
-
-              {(operator?.bankName || operator?.bankAccount) ? (
-                <div className="mt-4 p-4 rounded-xl bg-sky-950/30 border border-sky-900/50 space-y-2">
-                  <span className="text-xs text-sky-400/80 font-bold uppercase tracking-wider block mb-1">{dict.confirmation.bankTransferTitle}</span>
-                  {operator.bankName ? (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-sky-500/70 uppercase">{dict.confirmation.bankNameLabel}</span>
-                      <span className="text-sm font-semibold text-sky-300">{operator.bankName}</span>
+              {/* P1: super-admin enabled payment methods only (localized) */}
+              {paymentMethods.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {paymentInstructionLine}
+                  </p>
+                  {paymentMethods.map((m) => (
+                    <div key={m.code} className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-900/50">
+                      <span className="text-xs text-emerald-400/80 font-bold uppercase tracking-wider block mb-1">{m.label}</span>
+                      {m.lines.map((line, i) => (
+                        <div key={i} className="text-sm font-mono text-emerald-300">{line}</div>
+                      ))}
                     </div>
-                  ) : null}
-                  {operator.bankAccount ? (
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-sky-500/70 uppercase">{dict.confirmation.accountNumberLabel}</span>
-                      <span className="text-sm font-mono text-sky-300">{operator.bankAccount}</span>
-                    </div>
-                  ) : null}
+                  ))}
                 </div>
               ) : null}
 

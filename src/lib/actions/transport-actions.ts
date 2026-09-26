@@ -23,7 +23,7 @@ export async function saveRouteAction(data: {
   };
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
   const scopedOperatorId = await getScopedOperatorId();
   const effectiveOperatorId = scopedOperatorId || (await prisma.companyProfile.findFirst())?.id || 'operator-ibrahim';
 
@@ -92,14 +92,14 @@ export async function saveRouteAction(data: {
   }
 
   revalidatePath('/transportation');
-  revalidatePath('/operator/transport');
+  revalidatePath('/platform/content/transport');
   revalidatePath('/');
 
   return { success: true, route };
 }
 
 export async function deleteRouteAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   const route = await prisma.route.delete({ where: { id } });
 
@@ -114,7 +114,7 @@ export async function deleteRouteAction(id: string) {
   });
 
   revalidatePath('/transportation');
-  revalidatePath('/operator/transport');
+  revalidatePath('/platform/content/transport');
 
   return { success: true };
 }
@@ -130,7 +130,7 @@ export async function saveVehicleAction(data: {
   features?: string[];
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
   const scopedOperatorId = await getScopedOperatorId();
   const effectiveOperatorId = scopedOperatorId || (await prisma.companyProfile.findFirst())?.id || 'operator-ibrahim';
 
@@ -186,13 +186,13 @@ export async function saveVehicleAction(data: {
   }
 
   revalidatePath('/transportation');
-  revalidatePath('/operator/transport');
+  revalidatePath('/platform/content/transport');
 
   return { success: true, vehicle };
 }
 
 export async function deleteVehicleAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   const vehicle = await prisma.vehicle.delete({ where: { id } });
 
@@ -207,7 +207,7 @@ export async function deleteVehicleAction(id: string) {
   });
 
   revalidatePath('/transportation');
-  revalidatePath('/operator/transport');
+  revalidatePath('/platform/content/transport');
 
   return { success: true };
 }

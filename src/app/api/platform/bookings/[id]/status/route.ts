@@ -14,7 +14,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const { id: bookingId } = await context.params;
 
     const body = await request.json();
@@ -161,6 +161,9 @@ export async function PATCH(
         }),
         status: targetStatus,
         reason: reason?.trim() || 'Internal operational adjustment',
+        locale: booking.locale,
+        operatorWhatsApp: booking.operator?.whatsapp || undefined,
+        traLicenseNumber: booking.operator?.traLicenseNumber || null,
       }).catch((err) => console.error('Failed to send cancellation email:', err));
     }
 

@@ -10,7 +10,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const { id: bookingId } = await context.params;
 
     const booking = await prisma.booking.findUnique({

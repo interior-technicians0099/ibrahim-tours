@@ -2,6 +2,7 @@ import React from 'react';
 import { requireRole } from '@/lib/auth-helpers';
 import { Role } from '@prisma/client';
 import { getCompanyProfile } from '@/lib/company';
+import PlatformNav from '@/components/platform/PlatformNav';
 import BrandingManagerClient, { BrandingData } from '@/components/admin/BrandingManagerClient';
 
 export const metadata = {
@@ -10,7 +11,7 @@ export const metadata = {
 };
 
 export default async function PlatformBrandingPage() {
-  await requireRole(Role.PLATFORM_ADMIN);
+  const user = await requireRole(Role.PLATFORM_ADMIN);
   const profile = await getCompanyProfile();
 
   const initialData: BrandingData = {
@@ -35,5 +36,10 @@ export default async function PlatformBrandingPage() {
     shortBio: profile.shortBio,
   };
 
-  return <BrandingManagerClient initialData={initialData} />;
+  return (
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      <PlatformNav adminName={user.name || undefined} adminEmail={user.email || undefined} />
+      <BrandingManagerClient initialData={initialData} />
+    </div>
+  );
 }

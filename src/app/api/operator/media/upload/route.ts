@@ -64,10 +64,11 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized: Authentication required.' }, { status: 401 });
     }
-    if (user.role !== Role.OPERATOR && user.role !== Role.PLATFORM_ADMIN && user.role !== Role.COMPANY_ADMIN) {
-      return NextResponse.json({ error: 'Forbidden: Insufficient permissions.' }, { status: 403 });
+    // P1: media/content is super-admin only — OPERATOR portal has no content access.
+    if (user.role !== Role.PLATFORM_ADMIN) {
+      return NextResponse.json({ error: 'Forbidden: Platform Admin access required.' }, { status: 403 });
     }
-    const scopedOperatorId = (user.role === Role.OPERATOR || user.role === Role.COMPANY_ADMIN) ? user.operatorId : null;
+    const scopedOperatorId = null;
 
     // 2. Upload Rate Limiting Check (~30 / hr)
     const rateLimitKey = user.id || request.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown';

@@ -22,7 +22,7 @@ import {
   toggleReviewPublishedAction,
   deleteReviewAction,
 } from '@/lib/actions/review-actions';
-import OperatorNav from '@/components/operator/OperatorNav';
+
 
 interface ReviewItem {
   id: string;
@@ -191,13 +191,6 @@ export default function ReviewManagerClient({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* 1. Unified Operator Navigation */}
-      <OperatorNav
-        userRole={userRole}
-        userEmail={userEmail}
-        operatorName="Zansafari Horizon"
-      />
-
       {/* 2. Action Toolbar */}
       <div className="bg-slate-900/60 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between">
         <div>

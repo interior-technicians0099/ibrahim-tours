@@ -292,7 +292,9 @@ export default function BookingForm() {
             phone,
             country,
             specialRequests,
-            locale: selectedLanguageObj.code,
+            // P0.5: booking.locale = tourist's current SITE language (drives email
+            // localization). The guide-language dropdown maps to preferredLanguage only.
+            locale: locale,
             preferredLanguage: selectedLanguageObj.name,
             honeypot,
           }
@@ -310,7 +312,9 @@ export default function BookingForm() {
             phone,
             country,
             specialRequests,
-            locale: selectedLanguageObj.code,
+            // P0.5: booking.locale = tourist's current SITE language (drives email
+            // localization). The guide-language dropdown maps to preferredLanguage only.
+            locale: locale,
             preferredLanguage: selectedLanguageObj.name,
             honeypot,
           };

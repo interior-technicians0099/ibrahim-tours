@@ -13,7 +13,7 @@ export async function saveCategoryAction(data: {
   sortOrder?: number;
   isActive?: boolean;
 }) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   const cleanSlug = data.slug
     .trim()
@@ -66,14 +66,14 @@ export async function saveCategoryAction(data: {
   }
 
   revalidatePath('/tours');
-  revalidatePath('/operator/categories');
-  revalidatePath('/operator/tours');
+  revalidatePath('/platform/content/categories');
+  revalidatePath('/platform/content/tours');
 
   return { success: true, category };
 }
 
 export async function deleteCategoryAction(id: string) {
-  const user = await requireRole([Role.OPERATOR, Role.COMPANY_ADMIN, Role.PLATFORM_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]); // P1: content is super-admin only
 
   // Check if category has tours
   const count = await prisma.tour.count({ where: { categoryId: id } });
@@ -94,8 +94,8 @@ export async function deleteCategoryAction(id: string) {
   });
 
   revalidatePath('/tours');
-  revalidatePath('/operator/categories');
-  revalidatePath('/operator/tours');
+  revalidatePath('/platform/content/categories');
+  revalidatePath('/platform/content/tours');
 
   return { success: true };
 }

@@ -20,7 +20,7 @@ import {
   ImageIcon,
 } from 'lucide-react';
 import MediaManager, { MediaItem } from '@/components/operator/MediaManager';
-import OperatorNav from '@/components/operator/OperatorNav';
+
 import {
   saveRouteAction,
   deleteRouteAction,
@@ -279,13 +279,6 @@ export default function TransportManagerClient({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
-      {/* 1. Unified Operator Navigation */}
-      <OperatorNav
-        userRole={userRole}
-        userEmail={userEmail}
-        operatorName="Zansafari Horizon"
-      />
-
       {/* 2. Action Toolbar */}
       <div className="bg-slate-900/60 border-b border-slate-800 px-4 sm:px-6 py-4 flex items-center justify-between">
         <div>

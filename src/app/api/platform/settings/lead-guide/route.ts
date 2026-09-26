@@ -6,7 +6,7 @@ import { getCompanyProfile } from '@/lib/company';
 
 export async function GET() {
   try {
-    await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    await requireRole([Role.PLATFORM_ADMIN]);
     const profile = await getCompanyProfile();
 
     return NextResponse.json({
@@ -26,7 +26,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const body = await request.json();
 
     const { leadGuideName, leadGuidePhone, leadGuideWhatsApp, leadGuideEmail } = body;

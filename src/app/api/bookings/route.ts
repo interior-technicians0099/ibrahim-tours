@@ -344,6 +344,7 @@ export async function POST(request: NextRequest) {
       locale: booking.locale,
       preferredLanguage: data.preferredLanguage,
       operatorWhatsApp: (operator as any).whatsapp || undefined,
+      traLicenseNumber: (operator as any).traLicenseNumber || null,
     };
 
     // Await email dispatch so Vercel serverless lambda does not terminate prematurely

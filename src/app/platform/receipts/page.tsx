@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PlatformReceiptsPage() {
-  const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+  const user = await requireRole([Role.PLATFORM_ADMIN]);
 
   const receipts = await prisma.receipt.findMany({
     orderBy: { issuedAt: 'desc' },

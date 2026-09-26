@@ -20,8 +20,11 @@ export default auth(async function middleware(request) {
 
   const session = request.auth;
 
-  const isOperatorRoute = pathname.startsWith("/operator");
-  const isPlatformRoute = pathname.startsWith("/platform") || pathname.startsWith("/api/platform");
+  const isOperatorRoute = pathname.startsWith("/operator") || pathname.startsWith("/api/operator");
+  const isPlatformRoute =
+    pathname.startsWith("/platform") ||
+    pathname.startsWith("/api/platform") ||
+    pathname.startsWith("/api/admin");
   const isAdminRoute = pathname.startsWith("/admin");
   const isLoginPage = pathname === "/login";
   const isChangePasswordPage = pathname === "/change-password";
@@ -52,9 +55,25 @@ export default auth(async function middleware(request) {
       return NextResponse.next();
     }
 
+    // P1: retired roles (COMPANY_ADMIN) cannot use either portal.
+    if (user.role === "COMPANY_ADMIN") {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json(
+          { error: "Forbidden: this role has been retired. Ask a super admin to re-provision your account." },
+          { status: 403 }
+        );
+      }
+      if (!isLoginPage) {
+        const loginUrl = new URL("/login", baseUrl);
+        loginUrl.searchParams.set("error", "role-retired");
+        return NextResponse.redirect(loginUrl);
+      }
+      return NextResponse.next();
+    }
+
     // If user does NOT need to change password, prevent access to /change-password & /login
     if (isLoginPage || isChangePasswordPage) {
-      const target = user.role === "PLATFORM_ADMIN" ? "/platform" : "/operator/tours";
+      const target = user.role === "PLATFORM_ADMIN" ? "/platform" : "/operator";
       return NextResponse.redirect(new URL(target, baseUrl));
     }
 
@@ -74,16 +93,15 @@ export default auth(async function middleware(request) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden: Platform Admin access required" }, { status: 403 });
       }
-      // OPERATOR is forbidden from accessing /platform/** -> redirect to /operator/tours?from=platform
-      const targetUrl = new URL("/operator/tours", baseUrl);
-      targetUrl.searchParams.set("from", "platform");
-      return NextResponse.redirect(targetUrl);
+      // OPERATOR is forbidden from accessing /platform/** -> back to their portal
+      return NextResponse.redirect(new URL("/operator", baseUrl));
     }
 
-    // Operator routes: accessible by OPERATOR, COMPANY_ADMIN, and PLATFORM_ADMIN (superadmin override)
-    if (isOperatorRoute && user.role !== "OPERATOR" && user.role !== "COMPANY_ADMIN" && user.role !== "PLATFORM_ADMIN") {
+    // P1 operator portal: OPERATOR sees inbox + forwarded bookings only.
+    // PLATFORM_ADMIN keeps override access for support. All CMS lives under /platform.
+    if (isOperatorRoute && user.role !== "OPERATOR" && user.role !== "PLATFORM_ADMIN") {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Forbidden: Operator or Company Admin access required" }, { status: 403 });
+        return NextResponse.json({ error: "Forbidden: Operator access required" }, { status: 403 });
       }
       return NextResponse.redirect(new URL("/login", baseUrl));
     }
@@ -107,5 +125,7 @@ export const config = {
     "/platform",
     "/platform/:path*",
     "/api/platform/:path*",
+    "/api/operator/:path*",
+    "/api/admin/:path*",
   ],
 };

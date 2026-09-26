@@ -1,9 +1,18 @@
 import { prisma } from '@/lib/prisma';
 import { NotificationRecipient, NotificationChannel } from '@prisma/client';
-import { getDictionary, isSupportedLocale, DEFAULT_LOCALE, Locale } from '@/lib/i18n';
+import { getDictionary, Locale } from '@/lib/email-i18n';
+import {
+  resolveEmailLocale,
+  fillTemplate,
+  assertNoPlaceholders,
+} from '@/lib/email-i18n';
+import { getEnabledPaymentMethods } from '@/lib/payment-methods';
 import { formatPrice } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
 import { logger } from '@/lib/logger';
+
+// Re-exported for existing importers (confirmation page, tests).
+export { resolveEmailLocale, fillTemplate, assertNoPlaceholders };
 
 /**
  * Canonical public base URL for links + QR payloads.
@@ -81,6 +90,7 @@ async function sendOneEmail(input: {
 }): Promise<{ ok: boolean; id?: string; error?: string }> {
   const resendApiKey = process.env.RESEND_API_KEY;
   const from = getFromEmail();
+  assertNoPlaceholders(input.html, String((input.logContext as any)?.type || input.subject));
   if (!resendApiKey) {
     const error = 'RESEND_API_KEY is not configured — email skipped (recorded as FAILED).';
     logger.error('[EmailService] ' + error, input.logContext);
@@ -253,13 +263,20 @@ export interface EmailBookingDetails {
   specialRequests?: string;
   totalPriceFormatted: string;
   paymentInstructions?: string;
+  /** @deprecated P1: superseded by paymentMethods (super-admin settings). */
   mpesaNumber?: string | null;
+  /** @deprecated P1: superseded by paymentMethods (super-admin settings). */
   bankName?: string | null;
+  /** @deprecated P1: superseded by paymentMethods (super-admin settings). */
   bankAccount?: string | null;
+  /** @deprecated P1: superseded by paymentMethods (super-admin settings). */
   paymentNotes?: string | null;
+  /** P1: resolved enabled methods (localized labels + lines). */
+  paymentMethods?: Array<{ code: string; label: string; lines: string[] }>;
   locale?: string;
   preferredLanguage?: string;
   operatorWhatsApp?: string;
+  traLicenseNumber?: string | null;
   costFormatted?: string;
   profitFormatted?: string;
   tierName?: string;
@@ -270,20 +287,32 @@ export interface EmailBookingDetails {
  * Fully localized across all 6 supported languages (EN, FR, ES, IT, DE, AR).
  */
 export function generateTouristEmailHtml(details: EmailBookingDetails): string {
-  const userLocale: Locale = isSupportedLocale(details.locale || '')
-    ? (details.locale as Locale)
-    : DEFAULT_LOCALE;
+  const userLocale = resolveEmailLocale(details.locale);
   const dict = getDictionary(userLocale);
   const isRtl = userLocale === 'ar';
   const textAlign = isRtl ? 'right' : 'left';
 
+  // ONE localized greeting with the customer name interpolated (never literal {name}).
+  const greeting = fillTemplate(dict.confirmation.greeting, { name: details.customerName });
+
   const operatorPhone = details.operatorWhatsApp || '+255 618 769 150';
   const cleanOperatorPhone = operatorPhone.replace(/[^0-9]/g, '');
 
+  // Localized WhatsApp prefill from the tourist's dictionary (operator alerts stay English).
   const whatsAppText = encodeURIComponent(
-    `Hello Zansafari Horizon! I have submitted a booking request:\n• Ref: ${details.referenceCode}\n• Service: ${details.title}\n• Date: ${details.date} (${details.time})\n• Name: ${details.customerName}\n\nPlease confirm availability and payment details!`
+    fillTemplate(dict.whatsapp.bookingConfirmation, {
+      reference: details.referenceCode,
+      service: details.title,
+      date: `${details.date} (${details.time})`,
+    })
   );
   const whatsAppUrl = `https://wa.me/${cleanOperatorPhone || '255618769150'}?text=${whatsAppText}`;
+  const prefillNote = fillTemplate(dict.confirmation.prefillRefNote, { ref: details.referenceCode });
+
+  // TRA claim renders ONLY when a license number is on file.
+  const traLine = details.traLicenseNumber
+    ? `<p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> • TRA Licensed Tour Operator (${details.traLicenseNumber})</p>`
+    : `<p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> — Stone Town, Zanzibar, Tanzania</p>`;
 
   return `
 <!DOCTYPE html>
@@ -314,9 +343,9 @@ export function generateTouristEmailHtml(details: EmailBookingDetails): string {
                 <span style="color:#065f46;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">✓ ${dict.confirmation.badgeLogged}</span>
               </div>
 
-              <h2 style="margin:0 0 12px 0;font-size:20px;color:#0f172a;font-weight:700;">${dict.confirmation.greeting}, ${details.customerName}!</h2>
+              <h2 style="margin:0 0 12px 0;font-size:20px;color:#0f172a;font-weight:700;">${greeting}</h2>
               <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#475569;">
-                ${dict.confirmation.alertDesc}
+                ${dict.confirmation.availabilityNotice}
               </p>
 
               <!-- Reference Box -->
@@ -372,12 +401,19 @@ export function generateTouristEmailHtml(details: EmailBookingDetails): string {
                 <p style="margin:0 0 12px 0;font-size:12px;line-height:1.6;color:#166534;font-weight:500;">
                   ${dict.confirmation.paymentNoticeExcl}
                 </p>
+                ${(details.paymentMethods || []).length > 0 ? `
                 <div style="background-color:#ffffff;border:1px solid #dcfce7;border-radius:10px;padding:14px;font-size:12px;line-height:1.7;color:#1e293b;">
-                  <div><strong>📱 M-Pesa Number:</strong> <span style="color:#047857;font-family:monospace;font-weight:700;">${details.mpesaNumber || '+255 618 769 150 (Zansafari Horizon)'}</span></div>
-                  <div><strong>🏦 Bank Name:</strong> <span style="color:#0f172a;font-weight:600;">${details.bankName || 'CRDB Bank Zanzibar'}</span></div>
-                  <div><strong>💳 Account Number:</strong> <span style="color:#047857;font-family:monospace;font-weight:700;">${details.bankAccount || '0150244488800 (USD / TZS)'}</span></div>
-                  ${details.paymentNotes ? `<div style="margin-top:6px;color:#64748b;font-style:italic;">Note: ${details.paymentNotes}</div>` : ''}
-                </div>
+                  <div style="margin:0 0 8px 0;font-size:12px;color:#166534;">${fillTemplate(dict.paymentMethods.instruction, { reference: details.referenceCode })}</div>
+                  ${(details.paymentMethods || [])
+                    .map(
+                      (m) => `
+                  <div style="margin-top:8px;padding-top:8px;border-top:1px solid #dcfce7;">
+                    <div><strong>${m.label}</strong></div>
+                    ${m.lines.map((line) => `<div style="color:#047857;font-family:monospace;font-weight:700;">${line}</div>`).join('')}
+                  </div>`
+                    )
+                    .join('')}
+                </div>` : ''}
               </div>
 
               <!-- WhatsApp CTA Button -->
@@ -385,7 +421,7 @@ export function generateTouristEmailHtml(details: EmailBookingDetails): string {
                 <a href="${whatsAppUrl}" target="_blank" style="display:inline-block;background-color:#25d366;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:30px;font-size:14px;font-weight:700;box-shadow:0 4px 12px rgba(37,211,102,0.35);">
                   💬 ${dict.booking.chatWhatsAppNow}
                 </a>
-                <p style="margin:8px 0 0 0;font-size:11px;color:#94a3b8;">Prefills reference: ${details.referenceCode}</p>
+                <p style="margin:8px 0 0 0;font-size:11px;color:#94a3b8;">${prefillNote}</p>
               </div>
 
             </td>
@@ -394,7 +430,7 @@ export function generateTouristEmailHtml(details: EmailBookingDetails): string {
           <!-- Footer -->
           <tr>
             <td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 30px;text-align:center;color:#64748b;font-size:12px;">
-              <p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> • TRA Licensed Tour Operator</p>
+              ${traLine}
               <p style="margin:0;">Stone Town, Zanzibar, Tanzania • WhatsApp: ${operatorPhone} • info@zansafarihorizon.com</p>
             </td>
           </tr>
@@ -528,11 +564,20 @@ export async function sendBookingNotifications(
   const adminAlertEmail =
     process.env.PLATFORM_ADMIN_EMAIL || process.env.OPERATOR_ALERT_EMAIL || 'admin@zansafarihorizon.com';
 
-  const userLocale: Locale = isSupportedLocale(details.locale || '')
-    ? (details.locale as Locale)
-    : DEFAULT_LOCALE;
+  const userLocale = resolveEmailLocale(details.locale);
   const dict = getDictionary(userLocale);
   const touristSubject = `${dict.booking.successTitle} — ${details.referenceCode} | Zansafari Horizon`;
+
+  // P1: resolve super-admin enabled payment methods (localized) when the
+  // caller did not already supply them.
+  if (!details.paymentMethods) {
+    try {
+      details.paymentMethods = await getEnabledPaymentMethods(details.locale);
+    } catch (err) {
+      console.warn('[EmailService] Failed to resolve payment methods:', err);
+      details.paymentMethods = [];
+    }
+  }
 
   const touristHtml = generateTouristEmailHtml(details);
   const adminHtml = generatePlatformAdminBookingAlertEmailHtml(details, baseUrl);
@@ -595,6 +640,8 @@ export interface ConfirmedNotificationDetails {
   operatorName: string;
   receiptNumber?: string;
   verificationCode?: string;
+  locale?: string;
+  traLicenseNumber?: string | null;
   receiptUrl?: string;
   /** Absolute verify URL: {APP_URL}/verify?code={verificationCode} */
   verifyUrl?: string;
@@ -611,17 +658,39 @@ export interface ConfirmedNotificationDetails {
  * Features official branded receipt details and 6-char verification code for tour day check-in.
  */
 export function generateConfirmedTouristEmailHtml(details: ConfirmedNotificationDetails): string {
+  const userLocale = resolveEmailLocale(details.locale);
+  const dict = getDictionary(userLocale);
+  const isRtl = userLocale === 'ar';
+
+  const greeting = fillTemplate(dict.confirmation.greeting, { name: details.customerName });
+  const paidLine = fillTemplate(dict.confirmation.confirmedPaidLine, {
+    amount: details.amountPaidFormatted,
+    method: details.paymentMethod,
+    operator: details.operatorName,
+  });
+  const arrivalDesc = fillTemplate(dict.confirmation.arrivalDesc, {
+    code: details.verificationCode || details.referenceCode,
+  });
+
   const whatsAppText = encodeURIComponent(
-    `Hello Zansafari Horizon! My booking ${details.referenceCode} is confirmed with receipt ${details.receiptNumber || ''}. Looking forward to our tour on ${details.bookingDate}!`
+    fillTemplate(dict.whatsapp.receiptConfirmed, {
+      reference: details.referenceCode,
+      date: details.bookingDate,
+    })
   );
   const whatsAppUrl = `https://wa.me/255618769150?text=${whatsAppText}`;
 
+  // TRA badge renders ONLY when a license number is on file.
+  const traBadge = details.traLicenseNumber
+    ? `TRA REGISTERED • ${dict.confirmation.officialReceiptBadge}`
+    : dict.confirmation.officialReceiptBadge;
+
   return `
 <!DOCTYPE html>
-<html>
+<html lang="${userLocale}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="utf-8">
-  <title>Booking Confirmed & Official Receipt — ${details.referenceCode}</title>
+  <title>${fillTemplate(dict.confirmation.confirmedSubject, { reference: details.referenceCode })}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#334155;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#0f172a;padding:30px 15px;">
@@ -632,9 +701,9 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
           <tr>
             <td style="background:linear-gradient(135deg,#059669,#0d9488);padding:35px 30px;text-align:center;color:#ffffff;">
               <span style="background-color:rgba(255,255,255,0.2);padding:4px 14px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">
-                TRA REGISTERED • OFFICIAL RECEIPT
+                ${traBadge}
               </span>
-              <h1 style="margin:12px 0 0 0;font-size:24px;font-weight:800;">BOOKING OFFICIALLY CONFIRMED</h1>
+              <h1 style="margin:12px 0 0 0;font-size:24px;font-weight:800;">${dict.confirmation.confirmedHeader}</h1>
               <p style="margin:6px 0 0 0;font-size:13px;opacity:0.95;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Zansafari Horizon</p>
             </td>
           </tr>
@@ -648,41 +717,41 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
                   ? `
               <div style="background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:2px solid #059669;border-radius:16px;padding:20px;text-align:center;margin-bottom:24px;">
                 <span style="display:block;font-size:11px;font-weight:800;color:#047857;text-transform:uppercase;letter-spacing:1px;">
-                  TOUR DAY CHECK-IN / UHAKIKI CODE
+                  ${dict.confirmation.uhakikiTitle}
                 </span>
                 <div style="font-size:32px;font-weight:900;color:#065f46;font-family:monospace;letter-spacing:4px;margin:8px 0;">
                   ${details.verificationCode}
                 </div>
                 <div style="font-size:12px;color:#047857;font-weight:600;">
-                  Receipt Number: <span style="font-family:monospace;font-weight:700;">${details.receiptNumber || 'ZSH-RECEIPT'}</span>
+                  ${dict.confirmation.receiptNumberLabel}: <span style="font-family:monospace;font-weight:700;">${details.receiptNumber || 'ZSH-RECEIPT'}</span>
                 </div>
                 <p style="margin:10px 0 0 0;font-size:12px;line-height:1.5;color:#065f46;">
-                  🔑 <em>Show this 6-letter verification code to your assigned guide upon meeting. The office verifies this code to activate your tour check-in.</em>
+                  🔑 <em>${dict.confirmation.uhakikiHelp}</em>
                 </p>
               </div>
               `
                   : `
               <div style="background-color:#ecfdf5;border:2px solid #10b981;border-radius:14px;padding:16px;text-align:center;margin-bottom:24px;">
-                <span style="display:block;font-size:12px;font-weight:800;color:#047857;text-transform:uppercase;letter-spacing:1px;">Payment Recorded & Verified</span>
+                <span style="display:block;font-size:12px;font-weight:800;color:#047857;text-transform:uppercase;letter-spacing:1px;">${dict.confirmation.paymentRecordedBadge}</span>
                 <span style="display:block;font-size:24px;font-weight:900;color:#065f46;margin-top:4px;">${details.referenceCode}</span>
               </div>
               `
               }
 
-              <h2 style="margin:0 0 12px 0;font-size:20px;color:#0f172a;">Jambo ${details.customerName}!</h2>
+              <h2 style="margin:0 0 12px 0;font-size:20px;color:#0f172a;">${greeting}</h2>
               <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#475569;">
-                Great news! Your payment of <strong>${details.amountPaidFormatted}</strong> via <strong>${details.paymentMethod}</strong> has been received by ${details.operatorName}. Your booking is now <strong>PAID IN FULL & CONFIRMED</strong>.
+                ${paidLine}
               </p>
 
               <!-- Trip & Payment Summary Table (NEVER reveals cost/profit) -->
               <table width="100%" border="0" cellspacing="0" cellpadding="8" style="font-size:13px;margin-bottom:24px;background-color:#f8fafc;border-radius:12px;border-collapse:collapse;">
-                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;width:35%;font-weight:600;">Excursion / Route:</td><td style="font-weight:700;color:#0f172a;">${details.serviceTitle}</td></tr>
-                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">Date & Time:</td><td style="font-weight:700;color:#047857;">${details.bookingDate} at ${details.bookingTime}</td></tr>
-                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">Pickup Location:</td><td style="color:#0f172a;">${details.pickupLocation}</td></tr>
-                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">Amount Paid:</td><td style="font-weight:800;color:#047857;">${details.amountPaidFormatted} (PAID IN FULL)</td></tr>
-                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">Payment Method:</td><td style="color:#0f172a;">${details.paymentMethod}</td></tr>
-                ${details.receiptNumber ? `<tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">Official Receipt:</td><td style="font-weight:700;font-family:monospace;color:#0f172a;">${details.receiptNumber}</td></tr>` : ''}
-                ${details.paymentReference ? `<tr><td style="color:#64748b;font-weight:600;">Payment Reference:</td><td style="color:#0f172a;font-family:monospace;">${details.paymentReference}</td></tr>` : ''}
+                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;width:35%;font-weight:600;">${dict.confirmation.serviceRequested}:</td><td style="font-weight:700;color:#0f172a;">${details.serviceTitle}</td></tr>
+                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">${dict.confirmation.dateTimeLabel}:</td><td style="font-weight:700;color:#047857;">${details.bookingDate} at ${details.bookingTime}</td></tr>
+                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">${dict.confirmation.pickupLabel}:</td><td style="color:#0f172a;">${details.pickupLocation}</td></tr>
+                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">${dict.confirmation.amountPaidLabel}:</td><td style="font-weight:800;color:#047857;">${details.amountPaidFormatted} (${dict.confirmation.paidInFullBadge})</td></tr>
+                <tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">${dict.confirmation.paymentMethodLabel}:</td><td style="color:#0f172a;">${details.paymentMethod}</td></tr>
+                ${details.receiptNumber ? `<tr style="border-bottom:1px solid #e2e8f0;"><td style="color:#64748b;font-weight:600;">${dict.confirmation.receiptNumberLabel}:</td><td style="font-weight:700;font-family:monospace;color:#0f172a;">${details.receiptNumber}</td></tr>` : ''}
+                ${details.paymentReference ? `<tr><td style="color:#64748b;font-weight:600;">${dict.confirmation.paymentRefLabel}:</td><td style="color:#0f172a;font-family:monospace;">${details.paymentReference}</td></tr>` : ''}
               </table>
 
               <!-- QR Code & Printable Receipt CTA (hosted image + plain-text fallback: data-URLs are blocked in email clients) -->
@@ -702,7 +771,7 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
                 ${
                   details.verificationCode
                     ? `
-                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Verification code</div>
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">${dict.confirmation.verificationCodeLabel}</div>
                 <div style="font-size:28px;font-weight:900;color:#065f46;font-family:monospace;letter-spacing:4px;margin:4px 0 8px 0;">${details.verificationCode}</div>
                 `
                     : ''
@@ -711,10 +780,10 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
                   details.verifyUrl
                     ? `
                 <div style="font-size:12px;color:#475569;margin-bottom:12px;word-break:break-all;">
-                  Verify online: <a href="${details.verifyUrl}" target="_blank" style="color:#0284c7;font-weight:700;">${details.verifyUrl}</a>
+                  ${dict.confirmation.verifyOnlineCaption} <a href="${details.verifyUrl}" target="_blank" style="color:#0284c7;font-weight:700;">${details.verifyUrl}</a>
                 </div>
                 <a href="${details.verifyUrl}" target="_blank" style="display:inline-block;background-color:#0369a1;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:8px;">
-                  ✅ Verify Receipt Online
+                  ✅ ${dict.confirmation.verifyOnlineCta}
                 </a><br />
                 `
                     : ''
@@ -722,11 +791,8 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
                 ${
                   details.receiptUrl
                     ? `
-                <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">
-                  Official Digital & Printable Tax Receipt
-                </div>
                 <a href="${details.receiptUrl}" target="_blank" style="display:inline-block;background-color:#047857;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
-                  📄 View & Print Official Receipt
+                  📄 ${dict.confirmation.viewReceiptCta}
                 </a>
                 `
                     : ''
@@ -737,15 +803,15 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
               }
 
               <div style="background-color:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px;margin-bottom:24px;text-align:left;">
-                <strong style="color:#166534;font-size:13px;display:block;margin-bottom:4px;">Arrival Instructions</strong>
+                <strong style="color:#166534;font-size:13px;display:block;margin-bottom:4px;">${dict.confirmation.arrivalTitle}</strong>
                 <p style="margin:0;font-size:12px;line-height:1.5;color:#14532d;">
-                  Your assigned guide / driver will meet you promptly at the pickup location. Simply show your verification code <strong>${details.verificationCode || details.referenceCode}</strong> or digital receipt on your mobile device.
+                  ${arrivalDesc}
                 </p>
               </div>
 
               <div style="text-align:center;margin-top:24px;">
                 <a href="${whatsAppUrl}" target="_blank" style="display:inline-block;background-color:#25d366;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:30px;font-size:14px;font-weight:700;">
-                  💬 Open WhatsApp with Zansafari Horizon
+                  💬 ${dict.booking.chatWhatsAppNow}
                 </a>
               </div>
             </td>
@@ -824,7 +890,11 @@ export async function sendBookingConfirmedNotifications(
 ): Promise<{ tourist: { ok: boolean; error?: string }; admin: { ok: boolean; error?: string } }> {
   const platformAdminEmail = process.env.PLATFORM_ADMIN_EMAIL || 'admin@zansafarihorizon.com';
 
-  const touristSubject = `Booking Confirmed & Fully Paid — ${details.referenceCode} | Zansafari Horizon`;
+  const userLocale = resolveEmailLocale(details.locale);
+  const touristDict = getDictionary(userLocale);
+  const touristSubject = fillTemplate(touristDict.confirmation.confirmedSubject, {
+    reference: details.referenceCode,
+  });
 
   const touristHtml = generateConfirmedTouristEmailHtml(details);
   const adminHtml = generateConfirmedPlatformAdminEmailHtml(details, baseUrl);
@@ -880,12 +950,12 @@ export interface CancelledNotificationDetails {
   status: 'REJECTED' | 'CANCELLED';
   locale?: string;
   operatorWhatsApp?: string;
+  traLicenseNumber?: string | null;
 }
 
 export function generateCancelledTouristEmailHtml(details: CancelledNotificationDetails): string {
-  const userLocale: Locale = isSupportedLocale(details.locale || '')
-    ? (details.locale as Locale)
-    : DEFAULT_LOCALE;
+  const userLocale = resolveEmailLocale(details.locale);
+  const dict = getDictionary(userLocale);
   const isRtl = userLocale === 'ar';
   const textAlign = isRtl ? 'right' : 'left';
 
@@ -893,12 +963,24 @@ export function generateCancelledTouristEmailHtml(details: CancelledNotification
   const cleanPhone = operatorPhone.replace(/[^0-9]/g, '') || '255618769150';
 
   const whatsAppText = encodeURIComponent(
-    `Hello Zansafari Horizon! Regarding my booking ${details.referenceCode} (${details.serviceTitle}): I would like to discuss alternative options.`
+    fillTemplate(dict.whatsapp.bookingConfirmation, {
+      reference: details.referenceCode,
+      service: details.serviceTitle,
+      date: details.bookingDate,
+    })
   );
   const whatsAppUrl = `https://wa.me/${cleanPhone}?text=${whatsAppText}`;
 
   const isRejected = details.status === 'REJECTED';
-  const badgeTitle = isRejected ? 'Booking Request Declined' : 'Booking Request Cancelled';
+  const badgeTitle = isRejected ? dict.confirmation.requestDeclinedBadge : dict.confirmation.requestCancelledBadge;
+  const hello = fillTemplate(dict.confirmation.emailHello, { name: details.customerName });
+  const bodyText = fillTemplate(dict.confirmation.cancelledBody, {
+    service: details.serviceTitle,
+    date: details.bookingDate,
+  });
+  const traLine = details.traLicenseNumber
+    ? `<p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> • TRA Licensed Tour Operator (${details.traLicenseNumber})</p>`
+    : `<p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> — Stone Town, Zanzibar, Tanzania</p>`;
 
   return `
 <!DOCTYPE html>
@@ -925,27 +1007,34 @@ export function generateCancelledTouristEmailHtml(details: CancelledNotification
                 <span style="display:block;font-size:24px;font-weight:900;color:#991b1b;margin-top:4px;">${details.referenceCode}</span>
               </div>
 
-              <h2 style="margin:0 0 12px 0;font-size:18px;color:#0f172a;">Jambo ${details.customerName},</h2>
+              <h2 style="margin:0 0 12px 0;font-size:18px;color:#0f172a;">${hello}</h2>
               <p style="margin:0 0 20px 0;font-size:14px;line-height:1.6;color:#475569;">
-                Thank you for your interest in Zansafari Horizon. We regret to inform you that your booking request for <strong>${details.serviceTitle}</strong> on <strong>${details.bookingDate}</strong> could not be scheduled as requested.
+                ${bodyText}
               </p>
 
               <div style="background-color:#fff1f2;border-left:4px solid #f43f5e;border-radius:8px;padding:16px;margin-bottom:24px;">
-                <strong style="color:#9f1239;font-size:13px;display:block;margin-bottom:6px;">Message from Operations:</strong>
+                <strong style="color:#9f1239;font-size:13px;display:block;margin-bottom:6px;">${dict.confirmation.operationsNoteLabel}</strong>
                 <p style="margin:0;font-size:13px;line-height:1.6;color:#881337;">
                   ${details.reason}
                 </p>
               </div>
 
               <p style="margin:0 0 24px 0;font-size:13px;line-height:1.6;color:#64748b;">
-                If your dates are flexible or you would like to explore alternative excursions, please reach out to our team directly on WhatsApp. We will gladly help customize a wonderful itinerary for you!
+                ${dict.confirmation.cancelledAlt}
               </p>
 
               <div style="text-align:center;margin-top:24px;">
                 <a href="${whatsAppUrl}" target="_blank" style="display:inline-block;background-color:#25d366;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:30px;font-size:14px;font-weight:700;">
-                  💬 Discuss Alternatives on WhatsApp
+                  💬 ${dict.confirmation.cancelledCta}
                 </a>
               </div>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 30px;text-align:center;color:#64748b;font-size:12px;">
+              ${traLine}
+              <p style="margin:0;">Stone Town, Zanzibar, Tanzania • info@zansafarihorizon.com</p>
             </td>
           </tr>
         </table>
@@ -960,7 +1049,10 @@ export function generateCancelledTouristEmailHtml(details: CancelledNotification
 export async function sendBookingCancelledNotification(
   details: CancelledNotificationDetails
 ): Promise<{ ok: boolean; error?: string }> {
-  const subject = `Update on Booking Request ${details.referenceCode} | Zansafari Horizon`;
+  const cancelDict = getDictionary(resolveEmailLocale(details.locale));
+  const subject = fillTemplate(cancelDict.confirmation.cancelledSubject, {
+    reference: details.referenceCode,
+  });
   const html = generateCancelledTouristEmailHtml(details);
   const type = details.status === 'REJECTED' ? 'BOOKING_REJECTED_TOURIST' : 'BOOKING_CANCELLED_TOURIST';
 
@@ -1510,21 +1602,36 @@ export interface GuideIntroDetails {
   bookingDate: string;
   bookingTime?: string;
   pickupLocation?: string;
+  traLicenseNumber?: string | null;
 }
 
 export function generateGuideIntroEmailHtml(details: GuideIntroDetails): string {
-  const userLocale: Locale = isSupportedLocale(details.locale || '')
-    ? (details.locale as Locale)
-    : DEFAULT_LOCALE;
+  const userLocale = resolveEmailLocale(details.locale);
+  const dict = getDictionary(userLocale);
+  const isRtl = userLocale === 'ar';
   const cleanGuidePhone = details.guidePhone.replace(/[^0-9]/g, '');
   const guideWhatsAppUrl = `https://wa.me/${cleanGuidePhone}`;
 
+  const hello = fillTemplate(dict.confirmation.emailHello, { name: details.customerName });
+  const introBody = fillTemplate(dict.confirmation.guideIntroBody, {
+    service: details.serviceTitle,
+    date: details.bookingDate,
+  });
+  const chatCta = fillTemplate(dict.confirmation.chatGuideCta, { guide: details.guideName });
+  const subject = fillTemplate(dict.confirmation.guideIntroSubject, {
+    service: details.serviceTitle,
+    reference: details.referenceCode,
+  });
+  const traLine = details.traLicenseNumber
+    ? `<p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> • TRA Licensed Tour Operator (${details.traLicenseNumber})</p>`
+    : `<p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> — Stone Town, Zanzibar, Tanzania</p>`;
+
   return `
 <!DOCTYPE html>
-<html>
+<html lang="${userLocale}" dir="${isRtl ? 'rtl' : 'ltr'}">
 <head>
   <meta charset="utf-8">
-  <title>Your Guide for ${details.serviceTitle} — ${details.referenceCode}</title>
+  <title>${subject}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#090d16;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#334155;">
   <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#090d16;padding:30px 15px;">
@@ -1538,7 +1645,7 @@ export function generateGuideIntroEmailHtml(details: GuideIntroDetails): string 
               <span style="background-color:rgba(255,255,255,0.2);padding:4px 14px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;">
                 Zansafari Horizon
               </span>
-              <h1 style="margin:12px 0 0 0;font-size:22px;font-weight:800;">Meet Your Designated Guide</h1>
+              <h1 style="margin:12px 0 0 0;font-size:22px;font-weight:800;">${dict.confirmation.guideIntroTitle}</h1>
               <p style="margin:4px 0 0 0;font-size:13px;opacity:0.9;">Ref: ${details.referenceCode}</p>
             </td>
           </tr>
@@ -1547,31 +1654,31 @@ export function generateGuideIntroEmailHtml(details: GuideIntroDetails): string 
           <tr>
             <td style="padding:30px;">
               <p style="font-size:15px;line-height:1.6;color:#1e293b;margin:0 0 20px 0;">
-                Hello <strong>${details.customerName}</strong>,
+                <strong>${hello}</strong>
               </p>
               <p style="font-size:14px;line-height:1.6;color:#334155;margin:0 0 24px 0;">
-                We are excited to introduce your personal tour guide for <strong>${details.serviceTitle}</strong> on <strong>${details.bookingDate}</strong>:
+                ${introBody}
               </p>
 
               <!-- Guide Card -->
               <div style="background-color:#f0fdf4;border:2px solid #86efac;border-radius:14px;padding:20px;text-align:center;margin-bottom:24px;">
                 <div style="font-size:36px;margin-bottom:8px;">👤</div>
                 <div style="font-size:20px;font-weight:800;color:#166534;">${details.guideName}</div>
-                <div style="font-size:14px;color:#15803d;margin-top:4px;">Licensed Professional Zanzibar Guide</div>
+                <div style="font-size:14px;color:#15803d;margin-top:4px;">${dict.confirmation.licensedGuideCard}</div>
                 <div style="font-size:15px;font-weight:700;color:#0f172a;margin-top:10px;">
-                  Phone / WhatsApp: ${details.guidePhone}
+                  ${dict.confirmation.phoneWhatsappLabel} ${details.guidePhone}
                 </div>
 
                 <div style="margin-top:16px;">
                   <a href="${guideWhatsAppUrl}" target="_blank" style="display:inline-block;background-color:#25d366;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:24px;font-size:14px;font-weight:700;box-shadow:0 4px 12px rgba(37,211,102,0.35);">
-                    💬 Chat with ${details.guideName} on WhatsApp
+                    💬 ${chatCta}
                   </a>
                 </div>
               </div>
 
               <div style="background-color:#f8fafc;border-radius:10px;padding:14px 18px;font-size:13px;color:#475569;line-height:1.5;">
-                <strong style="color:#0f172a;">Pickup details:</strong> ${details.pickupLocation || 'Stone Town / Hotel lobby'}<br>
-                Your guide will contact you before departure to confirm the exact rendezvous time.
+                <strong style="color:#0f172a;">${dict.confirmation.pickupDetailsLabel}</strong> ${details.pickupLocation || 'Stone Town / Hotel lobby'}<br>
+                ${dict.confirmation.guideContactNote}
               </div>
             </td>
           </tr>
@@ -1579,7 +1686,7 @@ export function generateGuideIntroEmailHtml(details: GuideIntroDetails): string 
           <!-- Footer -->
           <tr>
             <td style="background-color:#f8fafc;border-top:1px solid #e2e8f0;padding:20px 30px;text-align:center;color:#64748b;font-size:12px;">
-              <p style="margin:0 0 4px 0;"><strong>Zansafari Horizon</strong> • TRA Licensed Tour Operator</p>
+              ${traLine}
               <p style="margin:0;">Stone Town, Zanzibar, Tanzania • info@zansafarihorizon.com</p>
             </td>
           </tr>
@@ -1652,9 +1759,7 @@ export async function retryNotification(
 
     switch (notification.type) {
       case 'BOOKING_REQUEST_TOURIST': {
-        const userLocale: Locale = isSupportedLocale(booking.locale || '')
-          ? (booking.locale as Locale)
-          : DEFAULT_LOCALE;
+        const userLocale = resolveEmailLocale(booking.locale);
         const dict = getDictionary(userLocale);
         const details: EmailBookingDetails = {
           id: booking.id,
@@ -1673,6 +1778,7 @@ export async function retryNotification(
           specialRequests: booking.specialRequests || undefined,
           totalPriceFormatted: formatPrice(Math.round((booking.totalPriceCents || 0) / 100)),
           locale: booking.locale || 'en',
+          paymentMethods: await getEnabledPaymentMethods(booking.locale).catch(() => []),
         };
         to = [booking.customerEmail];
         subject = `${dict.booking.successTitle} — ${booking.referenceCode} | Zansafari Horizon`;
@@ -1736,6 +1842,7 @@ export async function retryNotification(
           paymentMethod: (booking.paymentMethod || 'Recorded').replace(/_/g, ' '),
           paymentReference: booking.paymentReference || undefined,
           operatorName: 'Zansafari Horizon',
+          locale: booking.locale || 'en',
           receiptNumber,
           verificationCode,
           receiptUrl,
@@ -1744,7 +1851,10 @@ export async function retryNotification(
         };
         if (notification.type === 'BOOKING_CONFIRMED_TOURIST') {
           to = [booking.customerEmail];
-          subject = `Booking Confirmed & Fully Paid — ${booking.referenceCode} | Zansafari Horizon`;
+          const retryDict = getDictionary(resolveEmailLocale(booking.locale));
+          subject = fillTemplate(retryDict.confirmation.confirmedSubject, {
+            reference: booking.referenceCode,
+          });
           html = generateConfirmedTouristEmailHtml(details);
         } else {
           const adminEmail = process.env.PLATFORM_ADMIN_EMAIL || 'admin@zansafarihorizon.com';
@@ -1768,7 +1878,10 @@ export async function retryNotification(
           locale: booking.locale || 'en',
         };
         to = [booking.customerEmail];
-        subject = `Update on Booking Request ${booking.referenceCode} | Zansafari Horizon`;
+        const cancelDict = getDictionary(resolveEmailLocale(booking.locale));
+        subject = fillTemplate(cancelDict.confirmation.cancelledSubject, {
+          reference: booking.referenceCode,
+        });
         html = generateCancelledTouristEmailHtml(details);
         break;
       }
@@ -1814,8 +1927,162 @@ async function persistNotificationUpdate(
   }
 }
 
+export interface OperatorAssignmentEmailDetails {
+  bookingId: string;
+  referenceCode: string;
+  operatorName: string;
+  operatorEmail: string;
+  /** The exact (possibly edited) message also stored in OperatorInbox. */
+  message: string;
+}
+
+/**
+ * P1 — Optional email copy of the inbox assignment, sent only when super
+ * admin ticks "also email the operator" in the Notify operator dialog.
+ */
+export async function sendOperatorAssignmentEmail(
+  details: OperatorAssignmentEmailDetails
+): Promise<{ ok: boolean; error?: string }> {
+  const subject = `New tour assignment — ${details.referenceCode} | Zansafari Horizon`;
+  const messageHtml = details.message
+    .split('\n')
+    .map((line) => `<div>${line || '&nbsp;'}</div>`)
+    .join('');
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>${subject}</title></head>
+<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#0f172a;padding:30px 15px;">
+    <tr><td align="center">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background-color:#ffffff;border-radius:20px;overflow:hidden;">
+        <tr>
+          <td style="background:linear-gradient(135deg,#0369a1,#0f766e);padding:25px 30px;text-align:center;color:#ffffff;">
+            <h1 style="margin:0;font-size:20px;font-weight:800;">Hello ${details.operatorName},</h1>
+            <p style="margin:6px 0 0 0;font-size:13px;opacity:0.9;">You have a new tour assignment (Ref: ${details.referenceCode}).</p>
+          </td>
+        </tr>
+        <tr><td style="padding:30px;">
+          <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px;font-size:13px;line-height:1.8;color:#0f172a;font-family:monospace;white-space:pre-wrap;">${messageHtml}</div>
+          <p style="margin:16px 0 0 0;font-size:12px;color:#64748b;">The same message is waiting in your operator portal inbox. Open the booking there to confirm completion after the tour.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`.trim();
+
+  const res = await sendOneEmail({
+    to: [details.operatorEmail],
+    subject,
+    html,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type: 'OPERATOR_ASSIGNMENT' },
+  });
+
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.OPERATOR,
+    type: 'OPERATOR_ASSIGNMENT',
+    payload: { referenceCode: details.referenceCode, to: details.operatorEmail },
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
+
+  return res;
+}
+
+export interface TourCompletedDetails {
+  bookingId: string;
+  referenceCode: string;
+  serviceTitle: string;
+  bookingDate: string;
+  bookingTime?: string;
+  customerName: string;
+  operatorName: string;
+  completedAt: string;
+}
+
+/**
+ * P1 — In-app + email notification to super admin when the operator marks
+ * a tour COMPLETED. The persisted Notification row is the in-app record
+ * (visible in /platform/notifications); the email is the push.
+ */
+export async function sendTourCompletedNotification(
+  details: TourCompletedDetails
+): Promise<{ ok: boolean; error?: string }> {
+  const adminEmail = process.env.PLATFORM_ADMIN_EMAIL || 'admin@zansafarihorizon.com';
+  const subject = `Tour completed by operator — ${details.referenceCode} (${details.customerName}) | Zansafari Horizon`;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>${subject}</title></head>
+<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#0f172a;padding:30px 15px;">
+    <tr><td align="center">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width:600px;background-color:#ffffff;border-radius:20px;overflow:hidden;">
+        <tr>
+          <td style="background:linear-gradient(135deg,#059669,#0d9488);padding:25px 30px;text-align:center;color:#ffffff;">
+            <span style="background-color:rgba(255,255,255,0.2);padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;">Operator completion report</span>
+            <h1 style="margin:10px 0 0 0;font-size:22px;font-weight:800;">Tour marked COMPLETED</h1>
+            <p style="margin:4px 0 0 0;font-size:13px;opacity:0.9;">Ref: ${details.referenceCode}</p>
+          </td>
+        </tr>
+        <tr><td style="padding:30px;">
+          <p style="margin:0 0 16px 0;font-size:14px;color:#334155;">
+            Operator <strong>${details.operatorName}</strong> has confirmed tour completion for booking <strong>${details.referenceCode}</strong> (${details.customerName}).
+          </p>
+          <table width="100%" border="0" cellspacing="0" cellpadding="6" style="font-size:13px;margin-bottom:20px;background-color:#f8fafc;border-radius:10px;">
+            <tr><td style="color:#64748b;width:40%;">Service:</td><td style="font-weight:700;">${details.serviceTitle}</td></tr>
+            <tr><td style="color:#64748b;">Tour date:</td><td>${details.bookingDate}${details.bookingTime ? ` (${details.bookingTime})` : ''}</td></tr>
+            <tr><td style="color:#64748b;">Completed at:</td><td>${details.completedAt}</td></tr>
+          </table>
+          <p style="margin:0;font-size:13px;color:#334155;">
+            Next step: finalize revenue and commission in the platform control room.
+          </p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${getAppBaseUrl()}/platform/bookings" target="_blank" style="display:inline-block;background-color:#047857;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:700;">
+              Open Bookings Master →
+            </a>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`.trim();
+
+  const res = await sendOneEmail({
+    to: [adminEmail],
+    subject,
+    html,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type: 'TOUR_COMPLETED_BY_OPERATOR' },
+  });
+
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.PLATFORM_ADMIN,
+    type: 'TOUR_COMPLETED_BY_OPERATOR',
+    payload: {
+      referenceCode: details.referenceCode,
+      serviceTitle: details.serviceTitle,
+      operatorName: details.operatorName,
+      completedAt: details.completedAt,
+    },
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
+
+  return res;
+}
+
 export async function sendGuideIntroNotification(details: GuideIntroDetails): Promise<{ ok: boolean; error?: string }> {
-  const subject = `Your Guide for ${details.serviceTitle} — ${details.referenceCode} | Zansafari Horizon`;
+  const introDict = getDictionary(resolveEmailLocale(details.locale));
+  const subject = fillTemplate(introDict.confirmation.guideIntroSubject, {
+    service: details.serviceTitle,
+    reference: details.referenceCode,
+  });
   const html = generateGuideIntroEmailHtml(details);
 
   const res = await sendOneEmail({

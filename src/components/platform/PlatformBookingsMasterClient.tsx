@@ -23,6 +23,8 @@ import {
   PlusCircle,
   ExternalLink,
   FileText,
+  BellRing,
+  Loader2,
 } from 'lucide-react';
 import { BookingStatus, PaymentStatus, CommissionStatus } from '@prisma/client';
 import PlatformNav from '@/components/platform/PlatformNav';
@@ -156,6 +158,16 @@ export default function PlatformBookingsMasterClient({
   const [isSendingIntro, setIsSendingIntro] = useState(false);
   const [isCompletingBooking, setIsCompletingBooking] = useState(false);
 
+  // P1 — Notify operator states
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifyDraft, setNotifyDraft] = useState('');
+  const [notifyOperatorName, setNotifyOperatorName] = useState('');
+  const [notifyHistory, setNotifyHistory] = useState<Array<{ id: string; message: string; sentAt: string; readAt: string | null; sentByName: string }>>([]);
+  const [notifySendEmail, setNotifySendEmail] = useState(true);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [notifyMsg, setNotifyMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // Anonymization state
   const [anonymizeConfirmOpen, setAnonymizeConfirmOpen] = useState(false);
   const [isAnonymizing, setIsAnonymizing] = useState(false);
@@ -275,6 +287,59 @@ export default function PlatformBookingsMasterClient({
       alert(err.message || 'Error forwarding lead.');
     } finally {
       setIsForwardingLead(false);
+    }
+  };
+
+  // P1 — Notify operator: load editable draft + history
+  const handleOpenNotify = async () => {
+    if (!selectedBooking) return;
+    setNotifyOpen(true);
+    setNotifyMsg(null);
+    setIsLoadingDraft(true);
+    try {
+      const res = await fetch(`/api/platform/bookings/${selectedBooking.id}/notify-draft`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load draft.');
+      setNotifyDraft(data.draft.message);
+      setNotifyOperatorName(data.draft.operator.name);
+      setNotifyHistory(data.history || []);
+    } catch (err: any) {
+      setNotifyMsg({ type: 'error', text: err?.message || 'Failed to load draft.' });
+    } finally {
+      setIsLoadingDraft(false);
+    }
+  };
+
+  // P1 — Send inbox message (+ optional email), then open prefilled wa.me
+  const handleSendNotify = async () => {
+    if (!selectedBooking) return;
+    setIsNotifying(true);
+    setNotifyMsg(null);
+    try {
+      const res = await fetch(`/api/platform/bookings/${selectedBooking.id}/notify-operator`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: notifyDraft, sendEmail: notifySendEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to notify operator.');
+      setNotifyMsg({
+        type: 'success',
+        text: data.emailed
+          ? 'Operator notified (inbox + email). WhatsApp opened in a new tab.'
+          : `Operator notified in-app${data.emailError ? ` (email failed: ${data.emailError})` : ''}. WhatsApp opened in a new tab.`,
+      });
+      setNotifyHistory((prev) => [
+        { id: data.inboxId, message: notifyDraft, sentAt: new Date().toISOString(), readAt: null, sentByName: 'You' },
+        ...prev,
+      ]);
+      if (data.whatsappUrl) {
+        window.open(data.whatsappUrl, '_blank');
+      }
+    } catch (err: any) {
+      setNotifyMsg({ type: 'error', text: err?.message || 'Failed to notify operator.' });
+    } finally {
+      setIsNotifying(false);
     }
   };
 
@@ -890,7 +955,131 @@ export default function PlatformBookingsMasterClient({
                   <ShieldCheck className="w-4 h-4 text-slate-600" />
                 </div>
               )}
+
+              {/* P1 — Notify Operator (inbox + WhatsApp + optional email) */}
+              <button
+                type="button"
+                onClick={handleOpenNotify}
+                className="p-3.5 rounded-2xl bg-indigo-950/40 hover:bg-indigo-900/50 border border-indigo-700/60 text-left transition-all group flex items-center justify-between sm:col-span-2"
+              >
+                <div>
+                  <div className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                    <BellRing className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Notify Operator</span>
+                  </div>
+                  <div className="text-[10px] text-indigo-400/80 mt-0.5">
+                    Editable assignment → operator inbox • opens WhatsApp • optional email
+                  </div>
+                </div>
+                <Send className="w-4 h-4 text-indigo-400 group-hover:translate-x-1 transition-transform" />
+              </button>
             </div>
+
+            {/* P1 — Notify Operator Modal */}
+            {notifyOpen && selectedBooking && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl p-5 sm:p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-base font-black text-white flex items-center gap-2">
+                        <BellRing className="w-4 h-4 text-indigo-400" />
+                        <span>Notify Operator — {selectedBooking.referenceCode}</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        To: {notifyOperatorName || 'operator'} • Edit the message, then send. Sending opens a
+                        prefilled WhatsApp chat and stores this in the operator inbox.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setNotifyOpen(false)}
+                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      title="Close"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {notifyMsg && (
+                    <div
+                      className={`p-3 rounded-xl text-xs font-medium ${
+                        notifyMsg.type === 'success'
+                          ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+                          : 'bg-red-500/10 border border-red-500/30 text-red-300'
+                      }`}
+                    >
+                      {notifyMsg.text}
+                    </div>
+                  )}
+
+                  {isLoadingDraft ? (
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Generating assignment summary...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="block">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          Assignment message (simple English, editable)
+                        </span>
+                        <textarea
+                          value={notifyDraft}
+                          onChange={(e) => setNotifyDraft(e.target.value)}
+                          rows={9}
+                          className="mt-1.5 w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 leading-relaxed"
+                        />
+                      </label>
+
+                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={notifySendEmail}
+                          onChange={(e) => setNotifySendEmail(e.target.checked)}
+                          className="w-4 h-4 accent-indigo-500"
+                        />
+                        <span>Also send by email to the operator</span>
+                      </label>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleSendNotify}
+                          disabled={isNotifying || notifyDraft.trim().length < 10}
+                          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer"
+                        >
+                          {isNotifying ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                          <span>{isNotifying ? 'Sending...' : 'Send to operator'}</span>
+                        </button>
+                        <button
+                          onClick={() => setNotifyOpen(false)}
+                          className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Close
+                        </button>
+                      </div>
+
+                      {notifyHistory.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-slate-800">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                            Previously sent ({notifyHistory.length})
+                          </span>
+                          {notifyHistory.map((h) => (
+                            <div key={h.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+                              <div className="text-[10px] text-slate-500 mb-1">
+                                {new Date(h.sentAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {' • '}
+                                {h.sentByName}
+                                {h.readAt ? ' • read ✓' : ' • unread'}
+                              </div>
+                              <p className="text-[11px] font-mono text-slate-300 whitespace-pre-wrap">{h.message}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Offline Guide Assignment Card */}
             <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">

@@ -152,7 +152,7 @@ export default function PlatformSettingsClient({ initialRate, adminEmail, initia
             </div>
           </div>
           <Link
-            href="/operator/branding"
+            href="/platform/branding"
             className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all shrink-0 active:scale-95"
           >
             <span>Manage Branding & Logo</span>

@@ -19,7 +19,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireRole([Role.PLATFORM_ADMIN, Role.COMPANY_ADMIN]);
+    const user = await requireRole([Role.PLATFORM_ADMIN]);
     const { id: bookingId } = await context.params;
 
     const body = await request.json();
@@ -212,6 +212,8 @@ export async function POST(
         paymentReference: paymentReference || undefined,
         profitFormatted: profitCents ? formatPrice(Math.round(profitCents / 100)) : null,
         operatorName: companyProfile.companyName,
+        locale: booking.locale,
+        traLicenseNumber: (companyProfile as any).traLicenseNumber || null,
         receiptNumber: issuedReceipt?.receiptNumber,
         verificationCode: issuedReceipt?.verificationCode,
         receiptUrl,
