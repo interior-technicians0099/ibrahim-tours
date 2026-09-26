@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { BookingPayloadSchema } from '@/lib/validations/booking';
 import { checkBookingRateLimit } from '@/lib/booking-rate-limiter';
-import { sendBookingNotifications } from '@/lib/services/email-service';
+import { sendBookingNotifications, getAppBaseUrl } from '@/lib/services/email-service';
 import { ALL_TOURS, TRANSFER_ROUTES, OPERATOR } from '@/lib/constants';
 import { formatPrice } from '@/lib/utils';
 import { ServiceType, BookingStatus, PaymentStatus } from '@prisma/client';
@@ -313,7 +313,8 @@ export async function POST(request: NextRequest) {
     });
 
     // 10. Trigger Resend Transactional Emails (Tourist & Operator)
-    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    // P0: absolute production URL — never localhost (breaks links + QR payloads)
+    const baseUrl = getAppBaseUrl();
     const emailDetails = {
       id: booking.id,
       referenceCode: booking.referenceCode,

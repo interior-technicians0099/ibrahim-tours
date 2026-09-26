@@ -1,8 +1,160 @@
 import { prisma } from '@/lib/prisma';
 import { NotificationRecipient, NotificationChannel } from '@prisma/client';
 import { getDictionary, isSupportedLocale, DEFAULT_LOCALE, Locale } from '@/lib/i18n';
+import { formatPrice } from '@/lib/utils';
 import * as Sentry from '@sentry/nextjs';
 import { logger } from '@/lib/logger';
+
+/**
+ * Canonical public base URL for links + QR payloads.
+ * Priority: APP_URL → NEXTAUTH_URL → VERCEL_URL → production fallback.
+ * NEVER falls back to localhost in production (that was breaking scanned QR codes).
+ */
+export function getAppBaseUrl(): string {
+  const raw =
+    process.env.APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    'https://zansafarihorizon.com';
+  return raw.replace(/\/$/, '');
+}
+
+/**
+ * Verified-domain sender. onboarding@resend.dev ONLY delivers to the Resend
+ * account owner's inbox (sandbox restriction) — production must use a verified
+ * domain address such as bookings@zansafarihorizon.com (SPF + DKIM in Cloudflare).
+ */
+export function getFromEmail(): string {
+  return process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <bookings@zansafarihorizon.com>';
+}
+
+/**
+ * Persists a single Notification audit row with SENT/FAILED delivery status.
+ * Every email send MUST go through this so failures are visible + retryable.
+ */
+async function persistNotification(input: {
+  bookingId?: string | null;
+  recipient: NotificationRecipient;
+  channel?: NotificationChannel;
+  type: string;
+  payload?: Record<string, unknown>;
+  ok: boolean;
+  providerId?: string;
+  error?: string;
+}): Promise<string | null> {
+  try {
+    const row = await prisma.notification.create({
+      data: {
+        bookingId: input.bookingId || null,
+        recipient: input.recipient,
+        channel: input.channel || NotificationChannel.EMAIL,
+        type: input.type,
+        payload: {
+          ...(input.payload || {}),
+          ...(input.providerId ? { providerId: input.providerId } : {}),
+          ...(input.error ? { lastError: input.error } : {}),
+        },
+        status: input.ok ? 'SENT' : 'FAILED',
+        errorMessage: input.ok ? null : input.error || 'Unknown send failure',
+        providerId: input.providerId || null,
+        sentAt: input.ok ? new Date() : null,
+      },
+      select: { id: true },
+    });
+    return row.id;
+  } catch (err) {
+    console.warn('[EmailService] Failed to record notification log:', err);
+    return null;
+  }
+}
+
+/**
+ * Wraps EVERY Resend send in try/catch. Never throws — always returns
+ * { ok, id?, error? } and logs server-side so booking flows never crash
+ * on email failure while failures stay observable.
+ */
+async function sendOneEmail(input: {
+  to: string[];
+  subject: string;
+  html: string;
+  logContext?: Record<string, unknown>;
+}): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const from = getFromEmail();
+  if (!resendApiKey) {
+    const error = 'RESEND_API_KEY is not configured — email skipped (recorded as FAILED).';
+    logger.error('[EmailService] ' + error, input.logContext);
+    return { ok: false, error };
+  }
+  try {
+    const result = await dispatchResendEmail({
+      apiKey: resendApiKey,
+      from,
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+    });
+    if (!result.ok) {
+      logger.error('[EmailService] Resend send failed:', result.error, {
+        ...input.logContext,
+        to: input.to,
+        subject: input.subject,
+      });
+    }
+    return result;
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    logger.error('[EmailService] Resend send threw:', err, input.logContext);
+    Sentry.captureException(err, {
+      tags: { service: 'email-service', action: 'sendOneEmail' },
+      extra: { ...input.logContext, to: input.to },
+    });
+    return { ok: false, error: message };
+  }
+}
+
+/**
+ * Raw diagnostic send for the super-admin /api/admin/test-email route.
+ * Bypasses the sandbox fallback on purpose so the dashboard shows exactly
+ * what Resend returns (status, body) for the configured FROM + API key.
+ */
+export async function sendDiagnosticTestEmail(
+  to: string
+): Promise<{ ok: boolean; providerId?: string; status?: number; error?: string; from: string }> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const from = getFromEmail();
+  if (!resendApiKey) {
+    return { ok: false, error: 'RESEND_API_KEY is not configured.', from };
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        subject: 'Zansafari Horizon — email delivery test',
+        html: `<p>This is a delivery test from Zansafari Horizon.</p><p>From: ${from}</p><p>If you received this, Resend + sender domain are correctly configured.</p>`,
+      }),
+    });
+    const bodyText = await res.text().catch(() => '');
+    let providerId: string | undefined;
+    try {
+      providerId = (JSON.parse(bodyText) as { id?: string }).id;
+    } catch {
+      providerId = undefined;
+    }
+    if (res.ok) {
+      return { ok: true, providerId, status: res.status, from };
+    }
+    return { ok: false, status: res.status, error: `HTTP ${res.status}: ${bodyText}`, from };
+  } catch (err: any) {
+    return { ok: false, error: err?.message || String(err), from };
+  }
+}
 
 /**
  * Resilient Resend dispatcher. In sandbox mode (when using onboarding@resend.dev),
@@ -369,10 +521,12 @@ export const generateOperatorAlertEmailHtml = generatePlatformAdminBookingAlertE
 /**
  * Dispatches emails via Resend API or records local simulated notification.
  */
-export async function sendBookingNotifications(details: EmailBookingDetails, baseUrl: string): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const adminAlertEmail = process.env.PLATFORM_ADMIN_EMAIL || process.env.OPERATOR_ALERT_EMAIL || 'admin@zansafarihorizon.com';
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <onboarding@resend.dev>';
+export async function sendBookingNotifications(
+  details: EmailBookingDetails,
+  baseUrl: string = getAppBaseUrl()
+): Promise<{ tourist: { ok: boolean; error?: string }; admin: { ok: boolean; error?: string } }> {
+  const adminAlertEmail =
+    process.env.PLATFORM_ADMIN_EMAIL || process.env.OPERATOR_ALERT_EMAIL || 'admin@zansafarihorizon.com';
 
   const userLocale: Locale = isSupportedLocale(details.locale || '')
     ? (details.locale as Locale)
@@ -383,71 +537,44 @@ export async function sendBookingNotifications(details: EmailBookingDetails, bas
   const touristHtml = generateTouristEmailHtml(details);
   const adminHtml = generatePlatformAdminBookingAlertEmailHtml(details, baseUrl);
 
-  if (resendApiKey) {
-    try {
-      // 1. Send Tourist Confirmation Email
-      const touristRes = await dispatchResendEmail({
-        apiKey: resendApiKey,
-        from: fromEmail,
-        to: [details.customerEmail],
-        subject: touristSubject,
-        html: touristHtml,
-      });
-      if (!touristRes.ok) {
-        logger.error('Resend tourist email failed:', touristRes.error);
-      }
+  // 1. Tourist confirmation email (try/catch inside sendOneEmail — never throws)
+  const touristRes = await sendOneEmail({
+    to: [details.customerEmail],
+    subject: touristSubject,
+    html: touristHtml,
+    logContext: { referenceCode: details.referenceCode, type: 'BOOKING_REQUEST_TOURIST' },
+  });
 
-      // 2. Send Platform Admin Alert Email
-      const adminRes = await dispatchResendEmail({
-        apiKey: resendApiKey,
-        from: fromEmail,
-        to: [adminAlertEmail],
-        subject: `🚨 [${getLanguageName(details.locale || 'en')}] New Booking Request — ${details.referenceCode} (${details.customerName})`,
-        html: adminHtml,
-      });
-      if (!adminRes.ok) {
-        logger.error('Resend platform admin email failed:', adminRes.error);
-      }
-    } catch (err) {
-      logger.error('Failed to send booking request Resend emails:', err, {
-        referenceCode: details.referenceCode,
-        recipient: details.customerEmail,
-      });
-      Sentry.captureException(err, {
-        tags: { service: 'email-service', action: 'sendBookingNotifications' },
-        extra: { referenceCode: details.referenceCode, recipient: details.customerEmail },
-      });
-    }
-  } else {
-    console.log(`[EmailService] Resend API key not found. Simulating email dispatch for ${details.referenceCode}`);
-  }
+  // 2. Platform admin alert email
+  const adminRes = await sendOneEmail({
+    to: [adminAlertEmail],
+    subject: `🚨 [${getLanguageName(details.locale || 'en')}] New Booking Request — ${details.referenceCode} (${details.customerName})`,
+    html: adminHtml,
+    logContext: { referenceCode: details.referenceCode, type: 'BOOKING_REQUEST_PLATFORM_ADMIN_ALERT' },
+  });
 
-  // Record notifications in database for audit trail
-  try {
-    await prisma.notification.create({
-      data: {
-        bookingId: details.id,
-        recipient: NotificationRecipient.TOURIST,
-        channel: NotificationChannel.EMAIL,
-        type: 'BOOKING_REQUEST_TOURIST',
-        payload: { referenceCode: details.referenceCode, to: details.customerEmail },
-        sentAt: new Date(),
-      },
-    });
+  // Record per-recipient Notification rows with SENT/FAILED + error message
+  await persistNotification({
+    bookingId: details.id,
+    recipient: NotificationRecipient.TOURIST,
+    type: 'BOOKING_REQUEST_TOURIST',
+    payload: { referenceCode: details.referenceCode, to: details.customerEmail },
+    ok: touristRes.ok,
+    providerId: touristRes.id,
+    error: touristRes.error,
+  });
 
-    await prisma.notification.create({
-      data: {
-        bookingId: details.id,
-        recipient: NotificationRecipient.PLATFORM_ADMIN,
-        channel: NotificationChannel.EMAIL,
-        type: 'BOOKING_REQUEST_PLATFORM_ADMIN_ALERT',
-        payload: { referenceCode: details.referenceCode, to: adminAlertEmail },
-        sentAt: new Date(),
-      },
-    });
-  } catch (err) {
-    console.warn('Failed to record notification log:', err);
-  }
+  await persistNotification({
+    bookingId: details.id,
+    recipient: NotificationRecipient.PLATFORM_ADMIN,
+    type: 'BOOKING_REQUEST_PLATFORM_ADMIN_ALERT',
+    payload: { referenceCode: details.referenceCode, to: adminAlertEmail },
+    ok: adminRes.ok,
+    providerId: adminRes.id,
+    error: adminRes.error,
+  });
+
+  return { tourist: touristRes, admin: adminRes };
 }
 
 export interface ConfirmedNotificationDetails {
@@ -469,6 +596,11 @@ export interface ConfirmedNotificationDetails {
   receiptNumber?: string;
   verificationCode?: string;
   receiptUrl?: string;
+  /** Absolute verify URL: {APP_URL}/verify?code={verificationCode} */
+  verifyUrl?: string;
+  /** Hosted PNG for email clients: {APP_URL}/api/qr?code={verificationCode} */
+  qrImageUrl?: string;
+  /** @deprecated data-URL images are blocked by most email clients; kept for back-compat only */
   qrDataUrl?: string;
   leadGuideName?: string;
   leadGuidePhone?: string;
@@ -553,26 +685,52 @@ export function generateConfirmedTouristEmailHtml(details: ConfirmedNotification
                 ${details.paymentReference ? `<tr><td style="color:#64748b;font-weight:600;">Payment Reference:</td><td style="color:#0f172a;font-family:monospace;">${details.paymentReference}</td></tr>` : ''}
               </table>
 
-              <!-- QR Code & Printable Receipt CTA -->
+              <!-- QR Code & Printable Receipt CTA (hosted image + plain-text fallback: data-URLs are blocked in email clients) -->
               ${
-                details.receiptUrl
+                details.receiptUrl || details.verifyUrl
                   ? `
               <div style="background-color:#f1f5f9;border:1px solid #cbd5e1;border-radius:14px;padding:20px;text-align:center;margin-bottom:24px;">
                 ${
-                  details.qrDataUrl
+                  details.qrImageUrl || details.qrDataUrl
                     ? `
                 <div style="margin-bottom:12px;">
-                  <img src="${details.qrDataUrl}" width="130" height="130" alt="Verification QR Code" style="display:inline-block;border-radius:8px;border:1px solid #cbd5e1;padding:4px;background:#ffffff;" />
+                  <img src="${details.qrImageUrl || details.qrDataUrl}" width="150" height="150" alt="Receipt verification QR code — scan to verify" style="display:inline-block;border-radius:8px;border:1px solid #cbd5e1;padding:4px;background:#ffffff;" />
                 </div>
                 `
                     : ''
                 }
+                ${
+                  details.verificationCode
+                    ? `
+                <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Verification code</div>
+                <div style="font-size:28px;font-weight:900;color:#065f46;font-family:monospace;letter-spacing:4px;margin:4px 0 8px 0;">${details.verificationCode}</div>
+                `
+                    : ''
+                }
+                ${
+                  details.verifyUrl
+                    ? `
+                <div style="font-size:12px;color:#475569;margin-bottom:12px;word-break:break-all;">
+                  Verify online: <a href="${details.verifyUrl}" target="_blank" style="color:#0284c7;font-weight:700;">${details.verifyUrl}</a>
+                </div>
+                <a href="${details.verifyUrl}" target="_blank" style="display:inline-block;background-color:#0369a1;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;margin-bottom:8px;">
+                  ✅ Verify Receipt Online
+                </a><br />
+                `
+                    : ''
+                }
+                ${
+                  details.receiptUrl
+                    ? `
                 <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:8px;">
                   Official Digital & Printable Tax Receipt
                 </div>
                 <a href="${details.receiptUrl}" target="_blank" style="display:inline-block;background-color:#047857;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
                   📄 View & Print Official Receipt
                 </a>
+                `
+                    : ''
+                }
               </div>
               `
                   : ''
@@ -662,82 +820,53 @@ export function generateConfirmedPlatformAdminEmailHtml(details: ConfirmedNotifi
  */
 export async function sendBookingConfirmedNotifications(
   details: ConfirmedNotificationDetails,
-  baseUrl: string
-): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
+  baseUrl: string = getAppBaseUrl()
+): Promise<{ tourist: { ok: boolean; error?: string }; admin: { ok: boolean; error?: string } }> {
   const platformAdminEmail = process.env.PLATFORM_ADMIN_EMAIL || 'admin@zansafarihorizon.com';
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <onboarding@resend.dev>';
 
   const touristSubject = `Booking Confirmed & Fully Paid — ${details.referenceCode} | Zansafari Horizon`;
 
   const touristHtml = generateConfirmedTouristEmailHtml(details);
   const adminHtml = generateConfirmedPlatformAdminEmailHtml(details, baseUrl);
 
-  if (resendApiKey) {
-    try {
-      // 1. Tourist Confirmation Email
-      const touristRes = await dispatchResendEmail({
-        apiKey: resendApiKey,
-        from: fromEmail,
-        to: [details.customerEmail],
-        subject: touristSubject,
-        html: touristHtml,
-      });
-      if (!touristRes.ok) {
-        logger.error('Resend confirmed tourist email failed:', touristRes.error);
-      }
+  // 1. Tourist Confirmation Email (try/catch inside sendOneEmail — never throws)
+  const touristRes = await sendOneEmail({
+    to: [details.customerEmail],
+    subject: touristSubject,
+    html: touristHtml,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type: 'BOOKING_CONFIRMED_TOURIST' },
+  });
 
-      // 2. Platform Admin Alert
-      const adminRes = await dispatchResendEmail({
-        apiKey: resendApiKey,
-        from: fromEmail,
-        to: [platformAdminEmail],
-        subject: `💰 Booking Fully Paid & Confirmed — ${details.referenceCode} (${details.customerName})`,
-        html: adminHtml,
-      });
-      if (!adminRes.ok) {
-        logger.error('Resend confirmed admin email failed:', adminRes.error);
-      }
-    } catch (err) {
-      logger.error('Failed to send confirmation emails via Resend:', err, {
-        bookingId: details.bookingId,
-        referenceCode: details.referenceCode,
-      });
-      Sentry.captureException(err, {
-        tags: { service: 'email-service', action: 'sendBookingConfirmedNotifications' },
-        extra: { bookingId: details.bookingId, referenceCode: details.referenceCode },
-      });
-    }
-  } else {
-    console.log(`[EmailService] Resend API key not found. Simulating CONFIRMED emails for ${details.referenceCode}`);
-  }
+  // 2. Platform Admin Alert
+  const adminRes = await sendOneEmail({
+    to: [platformAdminEmail],
+    subject: `💰 Booking Fully Paid & Confirmed — ${details.referenceCode} (${details.customerName})`,
+    html: adminHtml,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type: 'BOOKING_CONFIRMED_PLATFORM_ADMIN' },
+  });
 
-  // Record Notification audit rows
-  try {
-    await prisma.notification.create({
-      data: {
-        bookingId: details.bookingId,
-        recipient: NotificationRecipient.TOURIST,
-        channel: NotificationChannel.EMAIL,
-        type: 'BOOKING_CONFIRMED_TOURIST',
-        payload: { referenceCode: details.referenceCode, amount: details.amountPaidFormatted },
-        sentAt: new Date(),
-      },
-    });
+  // Record per-recipient Notification rows with SENT/FAILED + error message
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.TOURIST,
+    type: 'BOOKING_CONFIRMED_TOURIST',
+    payload: { referenceCode: details.referenceCode, amount: details.amountPaidFormatted },
+    ok: touristRes.ok,
+    providerId: touristRes.id,
+    error: touristRes.error,
+  });
 
-    await prisma.notification.create({
-      data: {
-        bookingId: details.bookingId,
-        recipient: NotificationRecipient.PLATFORM_ADMIN,
-        channel: NotificationChannel.EMAIL,
-        type: 'BOOKING_CONFIRMED_PLATFORM_ADMIN',
-        payload: { referenceCode: details.referenceCode, amount: details.amountPaidFormatted },
-        sentAt: new Date(),
-      },
-    });
-  } catch (err) {
-    console.warn('Failed to record notification log:', err);
-  }
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.PLATFORM_ADMIN,
+    type: 'BOOKING_CONFIRMED_PLATFORM_ADMIN',
+    payload: { referenceCode: details.referenceCode, amount: details.amountPaidFormatted },
+    ok: adminRes.ok,
+    providerId: adminRes.id,
+    error: adminRes.error,
+  });
+
+  return { tourist: touristRes, admin: adminRes };
 }
 
 export interface CancelledNotificationDetails {
@@ -830,54 +959,29 @@ export function generateCancelledTouristEmailHtml(details: CancelledNotification
 
 export async function sendBookingCancelledNotification(
   details: CancelledNotificationDetails
-): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <onboarding@resend.dev>';
-
+): Promise<{ ok: boolean; error?: string }> {
   const subject = `Update on Booking Request ${details.referenceCode} | Zansafari Horizon`;
   const html = generateCancelledTouristEmailHtml(details);
+  const type = details.status === 'REJECTED' ? 'BOOKING_REJECTED_TOURIST' : 'BOOKING_CANCELLED_TOURIST';
 
-  if (resendApiKey) {
-    try {
-      const res = await dispatchResendEmail({
-        apiKey: resendApiKey,
-        from: fromEmail,
-        to: [details.customerEmail],
-        subject,
-        html,
-      });
-      if (!res.ok) {
-        logger.error('Resend cancellation email failed:', res.error);
-      }
-    } catch (err) {
-      logger.error('Failed to send cancellation email via Resend:', err, {
-        bookingId: details.bookingId,
-        referenceCode: details.referenceCode,
-      });
-      Sentry.captureException(err, {
-        tags: { service: 'email-service', action: 'sendBookingCancelledNotification' },
-        extra: { bookingId: details.bookingId, referenceCode: details.referenceCode, status: details.status },
-      });
-    }
-  } else {
-    console.log(`[EmailService] Resend API key not found. Simulating ${details.status} email for ${details.referenceCode}`);
-  }
+  const res = await sendOneEmail({
+    to: [details.customerEmail],
+    subject,
+    html,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type },
+  });
 
-  // Record Notification audit row
-  try {
-    await prisma.notification.create({
-      data: {
-        bookingId: details.bookingId,
-        recipient: NotificationRecipient.TOURIST,
-        channel: NotificationChannel.EMAIL,
-        type: details.status === 'REJECTED' ? 'BOOKING_REJECTED_TOURIST' : 'BOOKING_CANCELLED_TOURIST',
-        payload: { referenceCode: details.referenceCode, reason: details.reason },
-        sentAt: new Date(),
-      },
-    });
-  } catch (err) {
-    console.warn('Failed to record notification log:', err);
-  }
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.TOURIST,
+    type,
+    payload: { referenceCode: details.referenceCode, reason: details.reason },
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
+
+  return res;
 }
 
 export interface SettlementNotificationDetails {
@@ -901,7 +1005,7 @@ export interface SettlementNotificationDetails {
  */
 export function generateSettlementStatementEmailHtml(
   details: SettlementNotificationDetails,
-  baseUrl: string = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+  baseUrl: string = getAppBaseUrl()
 ): string {
   const dashboardUrl = `${baseUrl}/platform/settlements`;
 
@@ -1010,12 +1114,8 @@ export function generateSettlementStatementEmailHtml(
  */
 export async function sendSettlementStatementNotification(
   details: SettlementNotificationDetails,
-  baseUrl?: string
-): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const fromEmail =
-    process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <onboarding@resend.dev>';
-
+  baseUrl: string = getAppBaseUrl()
+): Promise<{ ok: boolean; error?: string }> {
   const subject = `Monthly statement for ${details.month} is ready | Zansafari Horizon`;
   const html = generateSettlementStatementEmailHtml(details, baseUrl);
 
@@ -1036,82 +1136,50 @@ export async function sendSettlementStatementNotification(
   }
 
   if (recipientEmails.length === 0) {
-    console.warn('[EmailService] No recipients found for monthly statement notification.');
-    return;
-  }
-
-  if (resendApiKey) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: recipientEmails,
-          subject,
-          html,
-        }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(`Resend settlement statement email failed HTTP ${res.status}: ${errorText}`);
-      }
-    } catch (err) {
-      logger.error('Failed to send settlement email via Resend:', err, {
-        month: details.month,
-        operatorId: details.operatorId,
-      });
-      Sentry.captureException(err, {
-        tags: { service: 'email-service', action: 'sendSettlementStatementNotification' },
-        extra: { month: details.month, operatorId: details.operatorId },
-      });
-    }
-  } else {
-    console.log(
-      `[EmailService] Resend API key not found. Simulating monthly statement notification for ${details.month} to:`,
-      recipientEmails
-    );
-  }
-
-  // 2. Persist Notification rows for audit trail
-  try {
-    // Record for Operator
-    await prisma.notification.create({
-      data: {
-        recipient: NotificationRecipient.OPERATOR,
-        channel: NotificationChannel.EMAIL,
-        type: 'SETTLEMENT_STATEMENT_READY',
-        payload: {
-          operatorId: details.operatorId,
-          month: details.month,
-          totalBookings: details.totalBookings,
-          commissionDue: details.commissionDueFormatted,
-        },
-        sentAt: new Date(),
-      },
+    const error = 'No recipients found for monthly statement notification.';
+    console.warn('[EmailService] ' + error);
+    await persistNotification({
+      recipient: NotificationRecipient.PLATFORM_ADMIN,
+      type: 'SETTLEMENT_STATEMENT_READY',
+      payload: { operatorId: details.operatorId, month: details.month },
+      ok: false,
+      error,
     });
-
-    // Record for Platform Admin
-    await prisma.notification.create({
-      data: {
-        recipient: NotificationRecipient.PLATFORM_ADMIN,
-        channel: NotificationChannel.EMAIL,
-        type: 'SETTLEMENT_STATEMENT_READY',
-        payload: {
-          operatorId: details.operatorId,
-          month: details.month,
-          totalBookings: details.totalBookings,
-          commissionDue: details.commissionDueFormatted,
-        },
-        sentAt: new Date(),
-      },
-    });
-  } catch (err) {
-    console.warn('Failed to record settlement notification logs:', err);
+    return { ok: false, error };
   }
+
+  const res = await sendOneEmail({
+    to: recipientEmails,
+    subject,
+    html,
+    logContext: { month: details.month, operatorId: details.operatorId, type: 'SETTLEMENT_STATEMENT_READY' },
+  });
+
+  // 2. Persist Notification rows with SENT/FAILED status
+  const payload = {
+    operatorId: details.operatorId,
+    month: details.month,
+    totalBookings: details.totalBookings,
+    commissionDue: details.commissionDueFormatted,
+  };
+  await persistNotification({
+    recipient: NotificationRecipient.OPERATOR,
+    type: 'SETTLEMENT_STATEMENT_READY',
+    payload,
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
+  await persistNotification({
+    recipient: NotificationRecipient.PLATFORM_ADMIN,
+    type: 'SETTLEMENT_STATEMENT_READY',
+    payload,
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
+
+  return res;
 }
 
 // --------------------------------------------------------
@@ -1388,10 +1456,8 @@ export function generateWorkOrderEmailHtml(details: WorkOrderDetails, baseUrl?: 
 
 export async function sendWorkOrderNotification(
   details: WorkOrderDetails,
-  baseUrl?: string
-): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <onboarding@resend.dev>';
+  baseUrl: string = getAppBaseUrl()
+): Promise<{ ok: boolean; error?: string }> {
   const subject = `[WORK ORDER] Ref: ${details.referenceCode} - ${details.serviceTitle} (${details.bookingDate})`;
   const html = generateWorkOrderEmailHtml(details, baseUrl);
 
@@ -1401,61 +1467,31 @@ export async function sendWorkOrderNotification(
     recipients.push(adminEmail);
   }
 
-  if (resendApiKey) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: recipients,
-          subject,
-          html,
-        }),
-      });
+  const res = await sendOneEmail({
+    to: recipients,
+    subject,
+    html,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type: 'WORK_ORDER_SENT' },
+  });
 
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(`Resend work order email failed HTTP ${res.status}: ${errorText}`);
-      }
-    } catch (err) {
-      logger.error('Failed to send work order email via Resend:', err, {
-        bookingId: details.bookingId,
-        referenceCode: details.referenceCode,
-      });
-      Sentry.captureException(err, {
-        tags: { service: 'email-service', action: 'sendWorkOrderNotification' },
-        extra: { bookingId: details.bookingId, referenceCode: details.referenceCode },
-      });
-    }
-  } else {
-    console.log(`[EmailService] Resend API key not found. Simulating WORK ORDER email for ${details.referenceCode} to:`, recipients);
-  }
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.OPERATOR,
+    type: 'WORK_ORDER_SENT',
+    payload: {
+      bookingId: details.bookingId,
+      referenceCode: details.referenceCode,
+      serviceTitle: details.serviceTitle,
+      tourDate: details.bookingDate,
+      locale: details.locale,
+      leadGuideEmail: details.leadGuideEmail,
+    },
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
 
-  // Persist notification log
-  try {
-    await prisma.notification.create({
-      data: {
-        recipient: NotificationRecipient.OPERATOR,
-        channel: NotificationChannel.EMAIL,
-        type: 'WORK_ORDER_SENT',
-        payload: {
-          bookingId: details.bookingId,
-          referenceCode: details.referenceCode,
-          serviceTitle: details.serviceTitle,
-          tourDate: details.bookingDate,
-          locale: details.locale,
-          leadGuideEmail: details.leadGuideEmail,
-        },
-        sentAt: new Date(),
-      },
-    });
-  } catch (err) {
-    console.warn('Failed to record work order notification log:', err);
-  }
+  return res;
 }
 
 // --------------------------------------------------------
@@ -1557,65 +1593,255 @@ export function generateGuideIntroEmailHtml(details: GuideIntroDetails): string 
   `.trim();
 }
 
-export async function sendGuideIntroNotification(details: GuideIntroDetails): Promise<void> {
-  const resendApiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Zansafari Horizon <onboarding@resend.dev>';
-  const subject = `Your Guide for ${details.serviceTitle} — ${details.referenceCode} | Zansafari Horizon`;
-  const html = generateGuideIntroEmailHtml(details);
-
-  if (resendApiKey) {
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json',
+/**
+ * Retries a FAILED notification by regenerating its template from live
+ * booking data and re-sending. Updates the SAME row to SENT/FAILED so the
+ * admin list stays accurate. Supports the booking lifecycle email types;
+ * returns an error for types that cannot be regenerated (e.g. settlements).
+ */
+export async function retryNotification(
+  notificationId: string
+): Promise<{ ok: boolean; error?: string; providerId?: string }> {
+  const baseUrl = getAppBaseUrl();
+  const notification = await prisma.notification.findUnique({
+    where: { id: notificationId },
+    include: {
+      booking: {
+        include: {
+          tour: true,
+          route: true,
+          receipt: true,
+          payments: { orderBy: { paymentDate: 'desc' }, take: 5 },
         },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [details.customerEmail],
-          subject,
-          html,
-        }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => '');
-        throw new Error(`Resend guide intro email failed HTTP ${res.status}: ${errorText}`);
-      }
-    } catch (err) {
-      logger.error('Failed to send guide intro email via Resend:', err, {
-        bookingId: details.bookingId,
-        referenceCode: details.referenceCode,
-      });
-      Sentry.captureException(err, {
-        tags: { service: 'email-service', action: 'sendGuideIntroNotification' },
-        extra: { bookingId: details.bookingId, referenceCode: details.referenceCode },
-      });
-    }
-  } else {
-    console.log(`[EmailService] Resend API key not found. Simulating GUIDE INTRO email for ${details.referenceCode} to ${details.customerEmail}`);
+      },
+    },
+  });
+
+  if (!notification) {
+    return { ok: false, error: 'Notification not found.' };
+  }
+  const booking = notification.booking;
+  if (!booking) {
+    return { ok: false, error: 'Original booking no longer exists — cannot regenerate email.' };
   }
 
-  // Persist notification log
+  const fail = async (error: string) => {
+    await persistNotificationUpdate(notificationId, false, undefined, error);
+    return { ok: false as const, error };
+  };
+
   try {
-    await prisma.notification.create({
+    const serviceTitle =
+      booking.serviceType === 'TOUR'
+        ? (booking as any).tour?.title || 'Zanzibar Tour'
+        : `${booking.pickupLocation || 'Pickup'} → ${booking.dropoffLocation || 'Drop-off'}`;
+    const dateDisplay = new Date(booking.bookingDate).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+    const guestsText =
+      booking.serviceType === 'TOUR'
+        ? `${booking.numAdults} Adult${booking.numAdults > 1 ? 's' : ''}${booking.numChildren > 0 ? `, ${booking.numChildren} Child${booking.numChildren > 1 ? 'ren' : ''}` : ''}`
+        : `${booking.numAdults} Passenger${booking.numAdults > 1 ? 's' : ''}`;
+
+    let to: string[];
+    let subject: string;
+    let html: string;
+
+    switch (notification.type) {
+      case 'BOOKING_REQUEST_TOURIST': {
+        const userLocale: Locale = isSupportedLocale(booking.locale || '')
+          ? (booking.locale as Locale)
+          : DEFAULT_LOCALE;
+        const dict = getDictionary(userLocale);
+        const details: EmailBookingDetails = {
+          id: booking.id,
+          referenceCode: booking.referenceCode,
+          serviceType: booking.serviceType,
+          title: serviceTitle,
+          date: dateDisplay,
+          time: booking.bookingTime || 'Morning',
+          guestsText,
+          pickupLocation: booking.pickupLocation || 'Stone Town',
+          dropoffLocation: booking.dropoffLocation || undefined,
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          customerPhone: booking.customerPhone,
+          customerCountry: booking.customerCountry || 'International',
+          specialRequests: booking.specialRequests || undefined,
+          totalPriceFormatted: formatPrice(Math.round((booking.totalPriceCents || 0) / 100)),
+          locale: booking.locale || 'en',
+        };
+        to = [booking.customerEmail];
+        subject = `${dict.booking.successTitle} — ${booking.referenceCode} | Zansafari Horizon`;
+        html = generateTouristEmailHtml(details);
+        break;
+      }
+      case 'BOOKING_REQUEST_PLATFORM_ADMIN_ALERT': {
+        const adminEmail =
+          process.env.PLATFORM_ADMIN_EMAIL || process.env.OPERATOR_ALERT_EMAIL || 'admin@zansafarihorizon.com';
+        const details: EmailBookingDetails = {
+          id: booking.id,
+          referenceCode: booking.referenceCode,
+          serviceType: booking.serviceType,
+          title: serviceTitle,
+          date: dateDisplay,
+          time: booking.bookingTime || 'Morning',
+          guestsText,
+          pickupLocation: booking.pickupLocation || 'Stone Town',
+          dropoffLocation: booking.dropoffLocation || undefined,
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          customerPhone: booking.customerPhone,
+          customerCountry: booking.customerCountry || 'International',
+          specialRequests: booking.specialRequests || undefined,
+          totalPriceFormatted: formatPrice(Math.round((booking.totalPriceCents || 0) / 100)),
+          locale: booking.locale || 'en',
+        };
+        to = [adminEmail];
+        subject = `🚨 [Retry] New Booking Request — ${booking.referenceCode} (${booking.customerName})`;
+        html = generatePlatformAdminBookingAlertEmailHtml(details, baseUrl);
+        break;
+      }
+      case 'BOOKING_CONFIRMED_TOURIST':
+      case 'BOOKING_CONFIRMED_PLATFORM_ADMIN': {
+        const receipt = (booking as any).receipt;
+        const verificationCode = receipt?.verificationCode;
+        const receiptNumber = receipt?.receiptNumber;
+        const verifyUrl = verificationCode
+          ? `${baseUrl}/verify?code=${encodeURIComponent(verificationCode)}`
+          : undefined;
+        const qrImageUrl = verificationCode
+          ? `${baseUrl}/api/qr?code=${encodeURIComponent(verificationCode)}`
+          : undefined;
+        const receiptUrl = receiptNumber
+          ? `${baseUrl}/receipt/${encodeURIComponent(receiptNumber)}`
+          : undefined;
+        const totalPaid = booking.amountPaidCents || 0;
+        const target = booking.quotedPriceCents || booking.totalPriceCents || totalPaid;
+        const details: ConfirmedNotificationDetails = {
+          bookingId: booking.id,
+          referenceCode: booking.referenceCode,
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          customerPhone: booking.customerPhone,
+          serviceTitle,
+          bookingDate: dateDisplay,
+          bookingTime: booking.bookingTime || 'Morning',
+          pickupLocation: booking.pickupLocation || 'To be confirmed',
+          amountPaidFormatted: formatPrice(Math.round(totalPaid / 100)),
+          totalPriceFormatted: formatPrice(Math.round(target / 100)),
+          paymentMethod: (booking.paymentMethod || 'Recorded').replace(/_/g, ' '),
+          paymentReference: booking.paymentReference || undefined,
+          operatorName: 'Zansafari Horizon',
+          receiptNumber,
+          verificationCode,
+          receiptUrl,
+          verifyUrl,
+          qrImageUrl,
+        };
+        if (notification.type === 'BOOKING_CONFIRMED_TOURIST') {
+          to = [booking.customerEmail];
+          subject = `Booking Confirmed & Fully Paid — ${booking.referenceCode} | Zansafari Horizon`;
+          html = generateConfirmedTouristEmailHtml(details);
+        } else {
+          const adminEmail = process.env.PLATFORM_ADMIN_EMAIL || 'admin@zansafarihorizon.com';
+          to = [adminEmail];
+          subject = `💰 [Retry] Booking Fully Paid & Confirmed — ${booking.referenceCode} (${booking.customerName})`;
+          html = generateConfirmedPlatformAdminEmailHtml(details, baseUrl);
+        }
+        break;
+      }
+      case 'BOOKING_REJECTED_TOURIST':
+      case 'BOOKING_CANCELLED_TOURIST': {
+        const details: CancelledNotificationDetails = {
+          bookingId: booking.id,
+          referenceCode: booking.referenceCode,
+          customerName: booking.customerName,
+          customerEmail: booking.customerEmail,
+          serviceTitle,
+          bookingDate: dateDisplay,
+          reason: booking.cancellationReason || 'Please contact us on WhatsApp for alternatives.',
+          status: notification.type === 'BOOKING_REJECTED_TOURIST' ? 'REJECTED' : 'CANCELLED',
+          locale: booking.locale || 'en',
+        };
+        to = [booking.customerEmail];
+        subject = `Update on Booking Request ${booking.referenceCode} | Zansafari Horizon`;
+        html = generateCancelledTouristEmailHtml(details);
+        break;
+      }
+      default:
+        return fail(`Retry is not supported for notification type "${notification.type}".`);
+    }
+
+    const res = await sendOneEmail({
+      to,
+      subject,
+      html,
+      logContext: { retryOf: notificationId, type: notification.type },
+    });
+    await persistNotificationUpdate(notificationId, res.ok, res.id, res.error);
+    return res;
+  } catch (err: any) {
+    const message = err?.message || String(err);
+    logger.error('[EmailService] retryNotification threw:', err, { notificationId });
+    await persistNotificationUpdate(notificationId, false, undefined, message);
+    return { ok: false, error: message };
+  }
+}
+
+/** Updates an existing Notification row in place after a (re)send attempt. */
+async function persistNotificationUpdate(
+  id: string,
+  ok: boolean,
+  providerId?: string,
+  error?: string
+): Promise<void> {
+  try {
+    await prisma.notification.update({
+      where: { id },
       data: {
-        recipient: NotificationRecipient.TOURIST,
-        channel: NotificationChannel.EMAIL,
-        type: 'GUIDE_INTRO_SENT',
-        payload: {
-          bookingId: details.bookingId,
-          referenceCode: details.referenceCode,
-          guideName: details.guideName,
-          guidePhone: details.guidePhone,
-          customerEmail: details.customerEmail,
-        },
-        sentAt: new Date(),
+        status: ok ? 'SENT' : 'FAILED',
+        errorMessage: ok ? null : error || 'Unknown send failure',
+        providerId: providerId || null,
+        sentAt: ok ? new Date() : null,
       },
     });
   } catch (err) {
-    console.warn('Failed to record guide intro notification log:', err);
+    console.warn('[EmailService] Failed to update notification row:', err);
   }
+}
+
+export async function sendGuideIntroNotification(details: GuideIntroDetails): Promise<{ ok: boolean; error?: string }> {
+  const subject = `Your Guide for ${details.serviceTitle} — ${details.referenceCode} | Zansafari Horizon`;
+  const html = generateGuideIntroEmailHtml(details);
+
+  const res = await sendOneEmail({
+    to: [details.customerEmail],
+    subject,
+    html,
+    logContext: { bookingId: details.bookingId, referenceCode: details.referenceCode, type: 'GUIDE_INTRO_SENT' },
+  });
+
+  await persistNotification({
+    bookingId: details.bookingId,
+    recipient: NotificationRecipient.TOURIST,
+    type: 'GUIDE_INTRO_SENT',
+    payload: {
+      bookingId: details.bookingId,
+      referenceCode: details.referenceCode,
+      guideName: details.guideName,
+      guidePhone: details.guidePhone,
+      customerEmail: details.customerEmail,
+    },
+    ok: res.ok,
+    providerId: res.id,
+    error: res.error,
+  });
+
+  return res;
 }
 
 

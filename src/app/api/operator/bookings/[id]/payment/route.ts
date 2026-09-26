@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth-helpers';
 import { assertConfirmationAllowed } from '@/lib/services/booking-gate';
-import { sendBookingConfirmedNotifications } from '@/lib/services/email-service';
-import { issueBookingReceipt, generateReceiptQrDataUrl } from '@/lib/services/receipt-service';
+import { sendBookingConfirmedNotifications, getAppBaseUrl } from '@/lib/services/email-service';
+import { issueBookingReceipt, buildVerifyUrl, buildQrImageUrl } from '@/lib/services/receipt-service';
 import { getCompanyProfile } from '@/lib/company';
 import { Role, BookingStatus, PaymentStatus, PaymentMethod } from '@prisma/client';
 import { formatPrice } from '@/lib/utils';
@@ -155,7 +155,8 @@ export async function POST(
 
     // 6. Send CONFIRMED notifications if fully paid
     if (newPaymentStatus === PaymentStatus.PAID_IN_FULL) {
-      const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+      // P0: absolute production URL — QR must scan to a reachable /verify link
+      const baseUrl = getAppBaseUrl();
       const companyProfile = await getCompanyProfile();
 
       // Auto-issue official branded receipt
@@ -172,8 +173,13 @@ export async function POST(
         console.error('[OperatorPaymentRoute] Failed to auto-issue receipt:', receiptErr);
       }
 
-      const receiptUrl = issuedReceipt ? `${baseUrl}/receipt/${issuedReceipt.receiptNumber}` : undefined;
-      const qrDataUrl = receiptUrl ? await generateReceiptQrDataUrl(receiptUrl) : undefined;
+      // P0: QR encodes the absolute /verify?code= URL; email embeds the
+      // hosted /api/qr PNG (data-URLs are stripped by Gmail/Outlook).
+      const receiptUrl = issuedReceipt
+        ? `${baseUrl}/receipt/${encodeURIComponent(issuedReceipt.receiptNumber)}`
+        : undefined;
+      const verifyUrl = issuedReceipt ? buildVerifyUrl(issuedReceipt.verificationCode, baseUrl) : undefined;
+      const qrImageUrl = issuedReceipt ? buildQrImageUrl(issuedReceipt.verificationCode, baseUrl) : undefined;
 
       const serviceTitle =
         booking.serviceType === 'TOUR'
@@ -204,7 +210,8 @@ export async function POST(
         receiptNumber: issuedReceipt?.receiptNumber,
         verificationCode: issuedReceipt?.verificationCode,
         receiptUrl,
-        qrDataUrl,
+        verifyUrl,
+        qrImageUrl,
         leadGuideName: companyProfile.leadGuideName,
         leadGuidePhone: companyProfile.leadGuidePhone,
       };

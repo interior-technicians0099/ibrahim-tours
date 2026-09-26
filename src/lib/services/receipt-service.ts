@@ -81,7 +81,36 @@ export async function generateVerificationCode(tx?: any): Promise<string> {
 }
 
 /**
+ * Canonical public base URL (shared with email-service; duplicated here to
+ * avoid a services ↔ services import cycle).
+ */
+export function getReceiptBaseUrl(): string {
+  const raw =
+    process.env.APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    'https://zansafarihorizon.com';
+  return raw.replace(/\/$/, '');
+}
+
+/**
+ * Absolute self-service verification URL encoded in every receipt QR.
+ * MUST be absolute (never localhost) so phone cameras resolve it off-network.
+ */
+export function buildVerifyUrl(verificationCode: string, baseUrl: string = getReceiptBaseUrl()): string {
+  return `${baseUrl}/verify?code=${encodeURIComponent(verificationCode.trim().toUpperCase())}`;
+}
+
+/**
+ * Hosted QR image URL for email clients (data-URLs are blocked by Gmail/Outlook).
+ */
+export function buildQrImageUrl(verificationCode: string, baseUrl: string = getReceiptBaseUrl()): string {
+  return `${baseUrl}/api/qr?code=${encodeURIComponent(verificationCode.trim().toUpperCase())}`;
+}
+
+/**
  * Generates offline scannable QR Code as base64 PNG data URL
+ * (used for on-page/print rendering only — NEVER in emails).
  */
 export async function generateReceiptQrDataUrl(targetUrl: string): Promise<string> {
   try {
@@ -98,6 +127,23 @@ export async function generateReceiptQrDataUrl(targetUrl: string): Promise<strin
     console.error('[ReceiptService] Error generating QR code:', err);
     return '';
   }
+}
+
+/**
+ * Generates a scannable QR Code as a raw PNG buffer (server-side).
+ * Powers GET /api/qr?code=... so emails embed a hosted image.
+ */
+export async function generateReceiptQrPngBuffer(targetUrl: string): Promise<Buffer> {
+  return await QRCode.toBuffer(targetUrl, {
+    width: 300,
+    margin: 2,
+    color: {
+      dark: '#0f172a',
+      light: '#ffffff',
+    },
+    errorCorrectionLevel: 'M',
+    type: 'png',
+  });
 }
 
 /**

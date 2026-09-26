@@ -462,6 +462,9 @@ model Notification {
   channel   NotificationChannel
   type      String                // "BOOKING_REQUEST", "BOOKING_CONFIRMED", etc.
   payload   Json?
+  status    String                @default("SENT") // SENT | FAILED | PENDING
+  errorMessage String?            @db.Text
+  providerId   String?            // Resend email id on success
   sentAt    DateTime?
   createdAt DateTime              @default(now())
 }

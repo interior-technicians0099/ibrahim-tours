@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { getCompanyProfile } from '@/lib/company';
-import { generateReceiptQrDataUrl } from '@/lib/services/receipt-service';
+import { generateReceiptQrDataUrl, buildVerifyUrl } from '@/lib/services/receipt-service';
 import { formatPrice } from '@/lib/utils';
 import PrintReceiptButton from '@/components/receipt/PrintReceiptButton';
 import {
@@ -69,8 +69,9 @@ export default async function PublicReceiptPage({ params }: PageProps) {
 
   const booking = receipt.booking;
   const company = await getCompanyProfile();
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-  const qrDataUrl = await generateReceiptQrDataUrl(`${baseUrl}/receipt/${receipt.receiptNumber}`);
+  // P0: QR encodes the absolute /verify?code= URL (never localhost) so phone
+  // cameras land on the public self-service uhakiki page.
+  const qrDataUrl = await generateReceiptQrDataUrl(buildVerifyUrl(receipt.verificationCode));
 
   const serviceTitle =
     booking.serviceType === 'TOUR'
@@ -201,6 +202,12 @@ export default async function PublicReceiptPage({ params }: PageProps) {
                 <span className="text-[10px] font-mono font-bold text-slate-800 uppercase tracking-wider">
                   Scan to Verify
                 </span>
+                <Link
+                  href={`/verify?code=${encodeURIComponent(receipt.verificationCode)}`}
+                  className="text-[10px] font-bold text-emerald-700 underline"
+                >
+                  Open verification page
+                </Link>
               </div>
             )}
           </div>
